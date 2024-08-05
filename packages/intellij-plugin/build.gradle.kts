@@ -128,9 +128,9 @@ kover {
 tasks {
     prepareSandbox {
         // Inspired by Prettier plugin (https://github.com/JetBrains/intellij-plugins/blob/master/prettierJS/build.gradle.kts)
-        from("gen") {
-            include("**/*.js", "**/*.cjs")
-            into(intellijPlatform.pluginConfiguration.name.get())
+        from("../extension/out/language") {
+            include("main.cjs")
+            into("${intellijPlatform.pluginConfiguration.name.get()}/snakeskinLanguageService")
         }
     }
 
