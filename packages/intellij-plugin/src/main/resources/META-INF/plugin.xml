@@ -7,6 +7,15 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.redhat.devtools.lsp4ij</depends>
 
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="Snakeskin"
+            implementationClass="snakeskin.lang.SnakeskinFileType"
+            fieldName="INSTANCE"
+            language="Snakeskin"
+            extensions="ss;ess" />
+    </extensions>
+
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
         <server id="snakeskin.lang"
                 name="Snakeskin Language Server"
@@ -17,8 +26,6 @@
             </description>
         </server>
 
-        <fileNamePatternMapping patterns="*.ss"
-                                serverId="snakeskin.lang"
-                                languageId="snakeskin"/>
+        <languageMapping language="Snakeskin" serverId="snakeskin.lang" />
     </extensions>
 </idea-plugin>
