@@ -32,6 +32,8 @@ repositories {
 dependencies {
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
+        plugin("com.redhat.devtools.lsp4ij:0.3.0")
+
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
@@ -49,6 +51,8 @@ dependencies {
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
     pluginConfiguration {
+        name = providers.gradleProperty("pluginName")
+
         version = providers.gradleProperty("pluginVersion")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
@@ -122,6 +126,14 @@ kover {
 }
 
 tasks {
+    prepareSandbox {
+        // Inspired by Prettier plugin (https://github.com/JetBrains/intellij-plugins/blob/master/prettierJS/build.gradle.kts)
+        from("gen") {
+            include("**/*.js", "**/*.cjs")
+            into(intellijPlatform.pluginConfiguration.name.get())
+        }
+    }
+
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }

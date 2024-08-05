@@ -5,4 +5,20 @@
     <vendor>SnakeskinTpl</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.redhat.devtools.lsp4ij</depends>
+
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <server id="snakeskin.lang"
+                name="Snakeskin Language Server"
+                factoryClass="snakeskin.lang.SnakeskinLanguageServerFactory">
+            <description><![CDATA[
+            Plugin for Snakeskin language using Language Server Protocol.
+            ]]>
+            </description>
+        </server>
+
+        <fileNamePatternMapping patterns="*.ss"
+                                serverId="snakeskin.lang"
+                                languageId="snakeskin"/>
+    </extensions>
 </idea-plugin>
