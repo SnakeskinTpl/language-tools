@@ -14,6 +14,9 @@
             fieldName="INSTANCE"
             language="Snakeskin"
             extensions="ss;ess" />
+
+        <notificationGroup id="Snakeskin notifications"
+                           displayType="BALLOON" />
     </extensions>
 
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
