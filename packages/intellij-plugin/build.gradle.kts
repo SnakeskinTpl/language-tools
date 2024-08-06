@@ -33,6 +33,7 @@ dependencies {
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         plugin("com.redhat.devtools.lsp4ij:0.3.0")
+        bundledPlugin("org.jetbrains.plugins.textmate")
 
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
 
@@ -131,6 +132,14 @@ tasks {
         from("../extension/out/language") {
             include("main.cjs")
             into("${intellijPlatform.pluginConfiguration.name.get()}/snakeskinLanguageService")
+        }
+
+        // Copy TextMate files from VS Code extension
+        from("../extension") {
+            include("package.json")
+            include("snakeskin.tmLanguage.json")
+            include("language-configuration.json")
+            into("${intellijPlatform.pluginConfiguration.name.get()}/textmate")
         }
     }
 

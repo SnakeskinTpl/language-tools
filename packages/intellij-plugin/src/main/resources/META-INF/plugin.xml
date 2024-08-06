@@ -6,6 +6,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.redhat.devtools.lsp4ij</depends>
+    <depends>org.jetbrains.plugins.textmate</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType
@@ -14,6 +15,19 @@
             fieldName="INSTANCE"
             language="Snakeskin"
             extensions="ss;ess" />
+
+        <!-- The following two ("editorHighlighterProvider" and "lang.syntaxHighlighterFactory") are required
+            because defining a custom file type breaks the association of a TextMate grammar with a file extension.
+            https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008202719/comments/8966725380242 -->
+        <editorHighlighterProvider
+            filetype="Snakeskin"
+            implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateEditorHighlighterProvider" />
+
+        <lang.syntaxHighlighterFactory
+            language="Snakeskin"
+            implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateSyntaxHighlighterFactory" />
+
+        <textmate.bundleProvider implementation="snakeskin.lang.SnakeskinTextMateBundleProvider" />
 
         <notificationGroup id="Snakeskin notifications"
                            displayType="BALLOON" />
