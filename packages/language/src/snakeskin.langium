@@ -363,7 +363,7 @@ Class:
 Tag:
     '<'
     ( tagName=DOT
-    | tagName=(TagName|'?')? (classes+=Class)*
+    | tagName=(TagName|'?')? (classes+=Class)* ('#' id=ID)?
     )
     (attrs+=Attribute (PIPE? attrs+=Attribute)*)? // If an attribute is inline, it doesn't need a separator
     Body?
