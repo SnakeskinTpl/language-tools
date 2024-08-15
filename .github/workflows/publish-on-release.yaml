@@ -104,3 +104,87 @@ jobs:
           pat: ${{ secrets.OPEN_VSX_ACCESS_TOKEN  }}
           extensionFile: ${{ needs.build-vsix.outputs.vsixName }}
           registryUrl: https://open-vsx.org
+
+  # I'm not sure how to upload the zip file and then publish it separately
+  build-and-publish-jetbrains:
+    name: Build and publish for JetBrains IDEs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Gradle Wrapper Validation 📐
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Set up Node 20 📦
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Setup Java 📦
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Gradle 📦
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Export Properties
+        id: properties
+        shell: bash
+        working-directory: ./packages/intellij-plugin
+        run: |
+          PROPERTIES="$(./gradlew properties --console=plain -q)"
+          VERSION="$(echo "$PROPERTIES" | grep "^version:" | cut -f2- -d ' ')"
+          CHANGELOG="$(./gradlew getChangelog --unreleased --no-header --console=plain -q)"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "pluginVerifierHomeDir=~/.pluginVerifier" >> $GITHUB_OUTPUT
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Install language service dependencies 🧰
+        run: npm ci
+
+      - name: Build language service 🔧
+        run: |
+          npm run --workspace=./packages/language langium:generate
+          npm run --workspace=./packages/extension build
+
+      - name: Build plugin 🔧
+        working-directory: ./packages/intellij-plugin
+        run: ./gradlew buildPlugin
+
+      - name: Extract artifact name
+        id: artifact-name
+        shell: bash
+        working-directory: ./packages/intellij-plugin
+        run: |
+          cd ./build/distributions
+          FILENAME=`ls *.zip`
+          echo "filename=${FILENAME:0:-4}" >> $GITHUB_OUTPUT
+
+      - name: Upload plugin artifact ⬆️
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.filename }}
+          path: ./packages/intellij-plugin/build/distributions/${{ steps.artifact-name.outputs.filename }}.zip
+
+      - name: Attach the ZIP to the release
+        working-directory: ./packages/intellij-plugin
+        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/${{ steps.artifact-name.outputs.filename }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to JetBrains Marketplace
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+        run: ./gradlew publishPlugin
