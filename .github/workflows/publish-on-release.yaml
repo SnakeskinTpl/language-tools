@@ -10,7 +10,7 @@ jobs:
     name: Build VSIX
     runs-on: ubuntu-latest
     outputs:
-      vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
+      vsixName: ${{ steps.vsixName.outputs.name }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -37,11 +37,17 @@ jobs:
           pat: stub
           dryRun: true
 
+      - name: Get VSIX name from full path 📦
+        id: vsixName
+        run: echo "name=${VSIX_PATH##*/}" >> "$GITHUB_OUTPUT"
+        env:
+          VSIX_PATH: ${{ steps.packageExtension.outputs.vsixPath }}
+
       - name: Upload Extension Package as Artifact ⬆️
         uses: actions/upload-artifact@v4
         with:
           path: ${{ steps.packageExtension.outputs.vsixPath }}
-          name: ${{ steps.packageExtension.outputs.vsixPath }}
+          name: ${{ steps.vsixName.outputs.name }}
           if-no-files-found: error
 
   publish-release-vsix:
@@ -55,10 +61,10 @@ jobs:
       - name: Download VSIX package 📥
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-vsix.outputs.vsixPath }}
+          name: ${{ needs.build-vsix.outputs.vsixName }}
 
       - name: Attach the VSIX to the release
-        run: gh release upload ${{ github.event.release.tag_name }} ${{ needs.build-vsix.outputs.vsixPath }}
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ needs.build-vsix.outputs.vsixName }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -70,13 +76,13 @@ jobs:
       - name: Download VSIX package 📥
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-vsix.outputs.vsixPath }}
+          name: ${{ needs.build-vsix.outputs.vsixName }}
 
       - name: Publish to Visual Studio Marketplace
         uses: HaaLeo/publish-vscode-extension@v1
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE_ACCESS_TOKEN }}
-          extensionFile: ${{ needs.build-vsix.outputs.vsixPath }}
+          extensionFile: ${{ needs.build-vsix.outputs.vsixName }}
           registryUrl: https://marketplace.visualstudio.com
 
   publish-open-vsx:
@@ -87,11 +93,11 @@ jobs:
       - name: Download VSIX package 📥
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-vsix.outputs.vsixPath }}
+          name: ${{ needs.build-vsix.outputs.vsixName }}
 
       - name: Publish to Open VSX Registry
         uses: HaaLeo/publish-vscode-extension@v1
         with:
           pat: ${{ secrets.OPEN_VSX_ACCESS_TOKEN  }}
-          extensionFile: ${{ needs.build-vsix.outputs.vsixPath }}
+          extensionFile: ${{ needs.build-vsix.outputs.vsixName }}
           registryUrl: https://open-vsx.org
