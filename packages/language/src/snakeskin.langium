@@ -454,8 +454,9 @@ Ignore: {infer Ignore} '-' '@@ignore'; // TODO: actually this shouldn't be speci
 
 AttrKey returns string:
     COLON? ATTR_KEY | COLON? ID | COLON? DASHED_ID | INTERPOLATION |
-    DASHED_ID COLON L_BRAC ID (DOT ID)* R_BRAC | // for "v-icon:[el.preIcon]"
-    '#' (L_BRAC ID (DOT ID)* R_BRAC)?
+    L_BRAC ID (DOT ID)* R_BRAC |
+    DASHED_ID COLON AttrKey |
+    '#' AttrKey
 ;
 
 DottedID returns string: ID (DOT ID)*;
@@ -485,6 +486,10 @@ terminal FUNC_PREFIX: /(?<=\n\s*)\(\)\s*=>\s/;
 terminal TEXT: /(?<=[\n\r]+\s+)(?!=+=|\/\*)[^\-\s<:?].*?(?=\r?\n)/s;
 terminal PARAM_DEFAULT_VALUE: /JS Object, will be overwritten in the TokenBuilder/;
 // Workaround for JavaScript expressions, matches till end of line
+/**
+ * When inside & . context, attr ends with " | " or " .\n"
+ */
+terminal ATTR_VAL_ML: /(?<==\s*).+?(?=\s+\.\s+|\s+\|\s+)/s;
 terminal EXPR_TILL_EOL: /(?<=\s(return|=|if|for|throw|unless|- target|\?) ).+?(?=\r?\n)/;
 terminal FROM: 'from'; // To have a lower priority than "EXPR_TILL_EOL"
 terminal DASHED_ID: /[_a-zA-Z\-][\w\-]*?(?=-\w)[\-\w]+/;
@@ -492,10 +497,6 @@ terminal AS: /(?<=\s)as(?=\s)/;
 terminal ASYNC: /(?<=\s)async(?=\s)/;
 terminal ID: /[_a-zA-Z][\w]*/;
 
-/**
- * When inside & . context, attr ends with " | " or " .\n"
- */
-terminal ATTR_VAL_ML: /(?<==\s*).+?(?=\s+\.\s+|\s+\|\s+)/s;
 
 terminal fragment EVENT_ATTR_KEY: /(?<!<\s*|\()\@[\w:\-\[\]]*/; // negative lookahead to avoid matching tag names preceded with '@' or param default values
 terminal fragment EVENT_ATTR_KEY2: /\@\[[\w:\-\(\)\.]*?\]/; // special case for "@[getControlEvent(tmp.buttonControl)]"
