@@ -1,0 +1,97 @@
+# Inspired by https://github.com/rzk-lang/vscode-rzk/blob/main/.github/workflows/publish-on-release.yml
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  build-vsix:
+    name: Build VSIX
+    runs-on: ubuntu-latest
+    outputs:
+      vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20 📦
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies 🧰
+        run: |
+          npm ci
+          npm install -g @vscode/vsce
+
+      - name: Build the language service
+        run: npm run --workspace=./packages/language langium:generate
+
+      - name: Package the extension 🔧
+        id: packageExtension
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          packagePath: ./packages/extension
+          pat: stub
+          dryRun: true
+
+      - name: Upload Extension Package as Artifact ⬆️
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ steps.packageExtension.outputs.vsixPath }}
+          name: ${{ steps.packageExtension.outputs.vsixPath }}
+          if-no-files-found: error
+
+  publish-release-vsix:
+    name: Attach VSIX to Release
+    needs: build-vsix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: ${{ github.event_name == 'release' }}
+    steps:
+      - name: Download VSIX package 📥
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build-vsix.outputs.vsixPath }}
+
+      - name: Attach the VSIX to the release
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ needs.build-vsix.outputs.vsixPath }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-vscode:
+    name: Publish to Visual Studio Marketplace
+    needs: build-vsix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download VSIX package 📥
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build-vsix.outputs.vsixPath }}
+
+      - name: Publish to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VSCODE_MARKETPLACE_ACCESS_TOKEN }}
+          extensionFile: ${{ needs.build-vsix.outputs.vsixPath }}
+          registryUrl: https://marketplace.visualstudio.com
+
+  publish-open-vsx:
+    name: Publish to Open VSX Registry
+    needs: build-vsix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download VSIX package 📥
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build-vsix.outputs.vsixPath }}
+
+      - name: Publish to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.OPEN_VSX_ACCESS_TOKEN  }}
+          extensionFile: ${{ needs.build-vsix.outputs.vsixPath }}
+          registryUrl: https://open-vsx.org
