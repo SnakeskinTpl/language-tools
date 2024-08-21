@@ -115,7 +115,7 @@ Template:
     '-' async?=ASYNC? 'template'
     name=ID
     L_PAREN
-        (params+=Parameter (',' params+=Parameter)*)?
+        (params+=Parameter (COMMA params+=Parameter)*)?
     R_PAREN
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body?
@@ -130,7 +130,7 @@ Placeholder:
     '-' 'placeholder'
     name=ID
     L_PAREN
-        (params+=Parameter (',' params+=Parameter)*)?
+        (params+=Parameter (COMMA params+=Parameter)*)?
     R_PAREN
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body
@@ -141,7 +141,7 @@ Block:
     (container=[Template] '->')?
     name=ID
     (L_PAREN
-        (params+=Parameter (',' params+=Parameter)*)?
+        (params+=Parameter (COMMA params+=Parameter)*)?
     R_PAREN)?
     Body?
 ;
@@ -152,7 +152,7 @@ Block:
 // ---------- II. Execution/output ----------
 
 Output:
-    text=(TEXT|INTERPOLATION|',')  // special case for comma because it is a token on its own
+    text=(TEXT|INTERPOLATION|COMMA)  // special case for comma because it is a token on its own
 ;
 
 /**
@@ -297,7 +297,7 @@ ForEach:
     AT? collection=(ID | JS_Array | ATTR_KEY) // TODO: any JS expression
     '=>'
     name=ID
-    (',' idx=ID)?
+    (COMMA idx=ID)?
     Body
 ;
 
@@ -306,7 +306,7 @@ ForIn:
     collection=ID // TODO: any JS expression
     '=>'
     name=ID
-    (',' idx=ID)?
+    (COMMA idx=ID)?
     Body
 ;
 
@@ -407,7 +407,7 @@ Import:
 
 Func:
     FUNC_PREFIX
-    params+=ID (',' params+=ID)*
+    params+=ID (COMMA params+=ID)*
     Body
 ;
 
@@ -474,7 +474,7 @@ TagName returns string:
     ID INTERPOLATION // special case for "h{i}"
 ;
 
-JS_Array returns string: L_BRAC (STRING (',' STRING)*)? R_BRAC;
+JS_Array returns string: L_BRAC (STRING (COMMA STRING)*)? R_BRAC;
 
 /**
  * The token builder will be overridden to choose one based on existing inside "& ."
@@ -484,6 +484,7 @@ AttrVal returns string:
 
 terminal FUNC_PREFIX: /(?<=\n\s*)\(\)\s*=>\s/;
 terminal TEXT: /(?<=[\n\r]+\s+)(?!=+=|\/\*)[^\-\s<:?].*?(?=\r?\n)/s;
+terminal COMMA: /,/;
 terminal PARAM_DEFAULT_VALUE: /JS Object, will be overwritten in the TokenBuilder/;
 // Workaround for JavaScript expressions, matches till end of line
 /**

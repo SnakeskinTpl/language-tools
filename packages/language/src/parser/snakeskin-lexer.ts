@@ -133,7 +133,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Terminal
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				if (tokens.length < 3) return null;
 				const [{tokenType: {name: parenOrComma}}, {tokenType: {name: id}}, {tokenType: {name: eq}}] = tokens.slice(-3);
-				if (eq !== '=' || id !== 'ID' || !['L_PAREN', ',', 'AT'].includes(parenOrComma)) {
+				if (eq !== '=' || id !== 'ID' || !['L_PAREN', 'COMMA', 'AT'].includes(parenOrComma)) {
 					return null;
 				}
 
