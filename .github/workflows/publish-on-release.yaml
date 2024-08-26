@@ -180,6 +180,7 @@ jobs:
 
       - name: Attach the ZIP to the release
         working-directory: ./packages/intellij-plugin
+        if: ${{ github.event_name == 'release' }}
         run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/${{ steps.artifact-name.outputs.filename }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
