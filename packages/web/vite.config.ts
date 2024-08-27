@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import * as path from 'path';
-import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin';
 
 export default defineConfig(() => {
     const config = {
@@ -16,13 +15,6 @@ export default defineConfig(() => {
         },
         resolve: {
             dedupe: ['vscode']
-        },
-        optimizeDeps: {
-            esbuildOptions: {
-                plugins: [
-                    importMetaUrlPlugin
-                ]
-            }
         },
         server: {
             port: 5173
