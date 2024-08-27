@@ -17,7 +17,8 @@
     "scripts": {
         "clean": "shx rm -fr *.tsbuildinfo out",
         "build": "tsc && node esbuild.mjs",
-        "build:clean": "npm run clean && npm run build"
+        "build:clean": "npm run clean && npm run build",
+        "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
         "@snakeskin/language": "0.0.1",
