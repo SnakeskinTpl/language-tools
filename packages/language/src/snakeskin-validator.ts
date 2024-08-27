@@ -48,7 +48,6 @@ export class SnakeskinValidator {
             const line = start.line + lineWithMatchingIndent;
             const startChar = lines[lineWithMatchingIndent].length;
             const endChar = lines[lineWithMatchingIndent + 1].length;
-            console.log('found offense!', line, startChar, endChar)
             accept(
                 'warning',
                 "This line has the same indentation as the attribute key. Are you sure you didn't forget a ` | `?",
