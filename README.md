@@ -1,12 +1,13 @@
-# Workspace overview
+# Snakeskin Language Tools
 
-Depending on the selection during the project generation you will have one or more packages contained in the packages directory.
-Please check the specific projects here:
+This project contains the language tooling for Snakeskin.
+It consists of the following packages:
 
-- [packages/language](./packages/language/README.md) This package is always available and contains the language definition.
-- [packages/cli](./packages/cli/README.md) *Optional* Is only available if you chose to use the command-line interface.
-- [packages/extension](./packages/extension/langium-quickstart.md) *Optional* Contains the VSCode extension if you chose to create it.
-- [packages/web](./packages/web/README.md) *Optional* If selected contains the language server running in a web browser and a monaco-editor with language support similar to the onm from VSCode.
+- [packages/language](./packages/language/README.md): The language definition and implementation of core language features.
+- [packages/cli](./packages/cli/README.md): A command-line interface exposing an LSP server for use outside of VS Code.
+- [packages/extension](./packages/extension/langium-quickstart.md): Contains the VSCode extension.
+- [packages/web](./packages/web/README.md): Contains the language server running in a web browser and a monaco-editor with language support similar to the one from VSCode. Useful as a playground for experimenting with the language.
+- [packages/intellij-plugin](./packages/intellij-plugin/README.md): A plugin for IntelliJ-based editors using LSP.
 
 ## What's in the folder?
 
