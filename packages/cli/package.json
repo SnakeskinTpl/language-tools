@@ -16,7 +16,7 @@
     },
     "scripts": {
         "clean": "shx rm -fr *.tsbuildinfo out",
-        "build": "echo 'No build step'",
+        "build": "tsc && node esbuild.mjs",
         "build:clean": "npm run clean && npm run build"
     },
     "dependencies": {
