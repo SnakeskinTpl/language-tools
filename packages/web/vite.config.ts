@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
+import { defineConfig, UserConfig } from 'vite';
 import * as path from 'path';
 
 export default defineConfig(() => {
-    const config = {
+    const config: UserConfig = {
         build: {
             target: 'esnext',
             rollupOptions: {
