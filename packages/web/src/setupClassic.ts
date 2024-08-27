@@ -10,7 +10,7 @@ export const setupConfigClassic = (): UserConfig => {
                 $type: 'classic',
                 codeResources: {
                     main: {
-                        text: '// Snakeskin is running in the web!',
+                        text: '/// Snakeskin is running in the web!',
                         fileExt: 'ss',
                         enforceLanguageId: 'snakeskin'
                     }

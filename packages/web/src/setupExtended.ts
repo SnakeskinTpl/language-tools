@@ -13,7 +13,7 @@ export const setupConfigExtended = (): UserConfig => {
                 $type: 'extended',
                 codeResources: {
                     main: {
-                        text: '// Snakeskin is running in the web!',
+                        text: '/// Snakeskin is running in the web!',
                         uri: '/workspace/hello-world.ss',
                     }
                 },
