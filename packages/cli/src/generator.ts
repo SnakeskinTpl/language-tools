@@ -1,5 +1,5 @@
 import type { Module } from '@snakeskin/language';
-import { expandToNode, joinToNode, toString } from 'langium/generate';
+import { expandToNode, toString } from 'langium/generate';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { extractDestinationAndName } from './util.js';
