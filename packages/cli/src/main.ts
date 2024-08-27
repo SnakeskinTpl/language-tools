@@ -5,6 +5,8 @@ import { Command } from 'commander';
 import { extractAstNode } from './util.js';
 import { generateJavaScript } from './generator.js';
 import { NodeFileSystem } from 'langium/node';
+import { startLanguageServer } from 'langium/lsp';
+import { createConnection, ProposedFeatures } from 'vscode-languageserver/node.js';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -24,6 +26,12 @@ export type GenerateOptions = {
     destination?: string;
 }
 
+export const lspAction = () => {
+    const connection = createConnection(ProposedFeatures.all, process.stdin, process.stdout);
+    const { shared } = createSnakeskinServices({ connection, ...NodeFileSystem });
+    startLanguageServer(shared);
+}
+
 export default function(): void {
     const program = new Command();
 
@@ -34,8 +42,14 @@ export default function(): void {
         .command('generate')
         .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
         .option('-d, --destination <dir>', 'destination directory of generating')
-        .description('generates JavaScript code that prints "Hello, {name}!" for each greeting in a source file')
+        .description('generates JavaScript code from the source Snakeskin code')
         .action(generateAction);
+
+    program
+        .command('lsp')
+        .option('--stdio', 'run in STDIO mode (for compatibility with non-Node clients)')
+        .description('runs the standalone LSP server')
+        .action(lspAction);
 
     program.parse(process.argv);
 }
