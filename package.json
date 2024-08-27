@@ -1,5 +1,5 @@
 {
-    "name": "snakeskin-workspace",
+    "name": "@snakeskin/workspace",
     "description": "Base workspace package",
     "version": "0.0.1",
     "type": "module",

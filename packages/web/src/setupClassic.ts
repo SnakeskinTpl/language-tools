@@ -1,6 +1,6 @@
 import { MonacoEditorLanguageClientWrapper, UserConfig } from 'monaco-editor-wrapper';
 import { configureWorker, defineUserServices } from './setupCommon.js';
-import { monarchSyntax } from 'snakeskin-language';
+import { monarchSyntax } from '@snakeskin/language';
 
 export const setupConfigClassic = (): UserConfig => {
     return {

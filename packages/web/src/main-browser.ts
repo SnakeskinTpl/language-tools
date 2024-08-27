@@ -3,7 +3,7 @@
 import { EmptyFileSystem } from 'langium';
 import { startLanguageServer } from 'langium/lsp';
 import { BrowserMessageReader, BrowserMessageWriter, createConnection } from 'vscode-languageserver/browser.js';
-import { createSnakeskinServices } from 'snakeskin-language';
+import { createSnakeskinServices } from '@snakeskin/language';
 
 declare const self: DedicatedWorkerGlobalScope;
 

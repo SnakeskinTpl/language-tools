@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { EmptyFileSystem, type LangiumDocument } from "langium";
 import { expandToString as s } from "langium/generate";
 import { parseHelper } from "langium/test";
-import type { Module } from "snakeskin-language";
-import { createSnakeskinServices, isModule } from "snakeskin-language";
+import type { Module } from "@snakeskin/language";
+import { createSnakeskinServices, isModule } from "@snakeskin/language";
 
 let services: ReturnType<typeof createSnakeskinServices>;
 let parse:    ReturnType<typeof parseHelper<Module>>;

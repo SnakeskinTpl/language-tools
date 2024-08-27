@@ -1,5 +1,5 @@
 {
-    "name": "snakeskin-cli",
+    "name": "@snakeskin/cli",
     "description": "The cli specific package",
     "version": "0.0.1",
     "type": "module",
@@ -20,7 +20,7 @@
         "build:clean": "npm run clean && npm run build"
     },
     "dependencies": {
-        "snakeskin-language": "0.0.1",
+        "@snakeskin/language": "0.0.1",
         "chalk": "~5.3.0",
         "commander": "~11.1.0"
     },

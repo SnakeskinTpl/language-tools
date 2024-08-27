@@ -1,5 +1,5 @@
-import type { Module } from 'snakeskin-language';
-import { createSnakeskinServices, SnakeskinLanguageMetaData } from 'snakeskin-language';
+import type { Module } from '@snakeskin/language';
+import { createSnakeskinServices, SnakeskinLanguageMetaData } from '@snakeskin/language';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { extractAstNode } from './util.js';

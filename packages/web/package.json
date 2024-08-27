@@ -1,5 +1,5 @@
 {
-    "name": "snakeskin-web",
+    "name": "@snakeskin/web",
     "description": "The web specific package",
     "version": "0.0.1",
     "type": "module",

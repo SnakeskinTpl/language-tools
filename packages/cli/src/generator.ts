@@ -1,4 +1,4 @@
-import type { Module } from 'snakeskin-language';
+import type { Module } from '@snakeskin/language';
 import { expandToNode, joinToNode, toString } from 'langium/generate';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
