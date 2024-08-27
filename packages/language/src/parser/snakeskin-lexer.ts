@@ -1,9 +1,9 @@
 import type { IMultiModeLexerDefinition, TokenType, TokenPattern } from 'chevrotain';
 import type { Grammar, GrammarAST, LexerResult, TokenBuilderOptions } from 'langium';
 import { RegExpUtils } from 'langium';
-import { IndentationAwareTokenBuilder, REGULAR_MODE, IGNORE_INDENTATION_MODE, IndentationAwareLexer } from './indentation-aware';
-import { consumeLiteral } from './js-literal';
-import { SnakeskinTerminals } from '../generated/ast';
+import { IndentationAwareTokenBuilder, REGULAR_MODE, IGNORE_INDENTATION_MODE, IndentationAwareLexer } from './indentation-aware.js';
+import { consumeLiteral } from './js-literal.js';
+import { SnakeskinTerminals } from '../generated/ast.js';
 
 type Terminals = keyof typeof SnakeskinTerminals;
 
