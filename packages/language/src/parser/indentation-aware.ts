@@ -45,6 +45,7 @@ export interface IndentationTokenBuilderOptions<TokenName extends string = strin
      */
     ignoreIndentationDelimeters: Array<[begin: TokenName, end: TokenName]>
 }
+export type TokenGroups = { [groupName: string]: IToken[] };
 
 export const indentationBuilderDefaultOptions: IndentationTokenBuilderOptions = {
     indentTokenName: 'INDENT',
@@ -95,13 +96,13 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
 
         this.indentTokenType = createToken({
             name: this.options.indentTokenName,
-            pattern: this.indentMatcher,
+            pattern: this.indentMatcher.bind(this),
             line_breaks: false,
         });
 
         this.dedentTokenType = createToken({
             name: this.options.dedentTokenName,
-            pattern: this.dedentMatcher,
+            pattern: this.dedentMatcher.bind(this),
             line_breaks: false,
         });
     }
@@ -112,7 +113,7 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
             throw new Error('Invalid tokens built by default builder');
         }
 
-        const { indentTokenName, dedentTokenName, whitespaceTokenName } = this.options;
+        const { indentTokenName, dedentTokenName, whitespaceTokenName, ignoreIndentationDelimeters } = this.options;
 
         // Rearrange tokens because whitespace (which is ignored) goes to the beginning by default, consuming indentation as well
         // Order should be: dedent, indent, spaces
@@ -121,6 +122,13 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
         let ws: TokenType | undefined;
         const otherTokens: TokenType[] = [];
         for (const tokenType of tokenTypes) {
+            for (const [begin, end] of ignoreIndentationDelimeters) {
+                if (tokenType.name === begin) {
+                    tokenType.PUSH_MODE = IGNORE_INDENTATION_MODE;
+                } else if (tokenType.name === end) {
+                    tokenType.POP_MODE = true;
+                }
+            }
             if (tokenType.name === dedentTokenName) {
                 dedent = tokenType;
             } else if (tokenType.name === indentTokenName) {
@@ -135,14 +143,18 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
             throw new Error('Some indentation/whitespace tokens not found!');
         }
 
-        const multiModeLexerDef: IMultiModeLexerDefinition = {
+        if (ignoreIndentationDelimeters.length > 0) {
+            const multiModeLexerDef: IMultiModeLexerDefinition = {
                 modes: {
-                        [REGULAR_MODE]: [dedent, indent, ...otherTokens, ws],
-                        [IGNORE_INDENTATION_MODE]: [...otherTokens, ws],
+                    [REGULAR_MODE]: [dedent, indent, ...otherTokens, ws],
+                    [IGNORE_INDENTATION_MODE]: [...otherTokens, ws],
                 },
-                defaultMode: REGULAR_MODE
-        };
-        return multiModeLexerDef;
+                defaultMode: REGULAR_MODE,
+            };
+            return multiModeLexerDef;
+        } else {
+            return [dedent, indent, ws, ...otherTokens];
+        }
     }
 
     /**
@@ -201,7 +213,7 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
      * @param tokens Previously scanned Tokens
      * @param groups Token Groups
      */
-    protected indentMatcher: CustomPatternMatcherFunc = (text, offset, tokens, _groups) => {
+    protected indentMatcher(text: string, offset: number, tokens: IToken[], _groups: TokenGroups): ReturnType<CustomPatternMatcherFunc> {
         const { indentTokenName } = this.options;
 
         if (!this.isStartOfLine(text, offset)) {
@@ -238,7 +250,7 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
      * @param tokens Previously scanned Tokens
      * @param groups Token Groups
      */
-    protected dedentMatcher: CustomPatternMatcherFunc = (text, offset, tokens, _groups) => {
+    protected dedentMatcher(text: string, offset: number, tokens: IToken[], _groups: TokenGroups): ReturnType<CustomPatternMatcherFunc> {
         const { dedentTokenName } = this.options;
 
         if (!this.isStartOfLine(text, offset)) {
@@ -282,10 +294,7 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
 
     protected override buildTerminalToken(terminal: GrammarAST.TerminalRule): TokenType {
         const tokenType = super.buildTerminalToken(terminal);
-        const { indentTokenName, dedentTokenName, whitespaceTokenName, ignoreIndentationDelimeters } = this.options;
-
-        const begins = ignoreIndentationDelimeters.map(([begin, _]) => begin);
-        const ends = ignoreIndentationDelimeters.map(([_, end]) => end);
+        const { indentTokenName, dedentTokenName, whitespaceTokenName } = this.options;
 
         if (tokenType.name === indentTokenName) {
             return this.indentTokenType;
@@ -297,10 +306,6 @@ export class IndentationAwareTokenBuilder<Terminals extends string = string> ext
                 pattern: this.whitespaceRegExp,
                 group: Lexer.SKIPPED,
             });
-        } else if (begins.includes(tokenType.name as Terminals)) {
-            tokenType.PUSH_MODE = IGNORE_INDENTATION_MODE;
-        } else if (ends.includes(tokenType.name as Terminals)) {
-            tokenType.POP_MODE = true;
         }
 
         return tokenType;

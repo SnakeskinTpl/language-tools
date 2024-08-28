@@ -1,6 +1,6 @@
 import type { IMultiModeLexerDefinition, TokenType, TokenPattern } from 'chevrotain';
 import type { Grammar, GrammarAST, LexerResult, TokenBuilderOptions } from 'langium';
-import { RegExpUtils } from 'langium';
+import { isTokenTypeArray, RegExpUtils } from 'langium';
 import { IndentationAwareTokenBuilder, REGULAR_MODE, IGNORE_INDENTATION_MODE, IndentationAwareLexer } from './indentation-aware.js';
 import { consumeLiteral } from './js-literal.js';
 import { SnakeskinTerminals } from '../generated/ast.js';
@@ -33,15 +33,18 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Terminal
 	}
 
 	override buildTokens(grammar: Grammar, options?: TokenBuilderOptions | undefined): IMultiModeLexerDefinition {
-		const {modes, defaultMode} = super.buildTokens(grammar, options);
+		const tokens = super.buildTokens(grammar, options);
+		const regularTokens = isTokenTypeArray(tokens) ? tokens : tokens.modes[REGULAR_MODE];
+		const ignoreIndentTokens = isTokenTypeArray(tokens) ? tokens : tokens.modes[IGNORE_INDENTATION_MODE];
+		const defaultMode = isTokenTypeArray(tokens) ? REGULAR_MODE : tokens.defaultMode;
 
 		return {
 			modes: {
-				[REGULAR_MODE]: modes[REGULAR_MODE].filter(token => token.name !== 'ATTR_VAL_ML'),
-				[IGNORE_INDENTATION_MODE]: modes[IGNORE_INDENTATION_MODE].filter(token => !['ATTR_VAL_SL', 'TEXT'].includes(token.name)),
+				[REGULAR_MODE]: regularTokens.filter(token => token.name !== 'ATTR_VAL_ML'),
+				[IGNORE_INDENTATION_MODE]: ignoreIndentTokens.filter(token => !['ATTR_VAL_SL', 'TEXT'].includes(token.name)),
 			},
 			defaultMode,
-		}
+		};
 	}
 
 	protected override buildKeywordPattern(keywordNode: GrammarAST.Keyword, caseInsensitive: boolean): TokenPattern {
