@@ -32,7 +32,8 @@ export const lspAction = () => {
     startLanguageServer(shared);
 }
 
-export const validateAction = async (fileOrDirName: string) => {
+type ValidateOptions = { Werror: boolean };
+export const validateAction = async (fileOrDirName: string, options: ValidateOptions) => {
     const services = createSnakeskinServices(NodeFileSystem).Snakeskin;
     const docs = await extractDocuments(fileOrDirName, services);
 
@@ -63,7 +64,7 @@ export const validateAction = async (fileOrDirName: string) => {
 
     console.log(color(`Found a total of ${errorsTotal} error(s) and ${warningsTotal} warning(s).`))
 
-    if (errorsTotal > 0) {
+    if (errorsTotal > 0 || (options.Werror && warningsTotal > 0)) {
         process.exit(1);
     }
 }
@@ -90,6 +91,7 @@ export default function(): void {
     program
         .command('validate')
         .argument('[path]', 'source file or directory; globs not supported yet', '.')
+        .option('-Werror', 'fail on warnings as well', false)
         .description('parses and validates Snakeskin files')
         .action(validateAction);
 
