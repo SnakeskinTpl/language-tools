@@ -2,11 +2,11 @@ import type { Module } from '@snakeskin/language';
 import { createSnakeskinServices, SnakeskinLanguageMetaData } from '@snakeskin/language';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { extractAstNode } from './util.js';
+import { extractAstNode, extractDocument } from './util.js';
 import { generateJavaScript } from './generator.js';
 import { NodeFileSystem } from 'langium/node';
 import { startLanguageServer } from 'langium/lsp';
-import { createConnection, ProposedFeatures } from 'vscode-languageserver/node.js';
+import { createConnection, ProposedFeatures, DiagnosticSeverity } from 'vscode-languageserver/node.js';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -32,6 +32,32 @@ export const lspAction = () => {
     startLanguageServer(shared);
 }
 
+export const validateAction = async (fileName: string) => {
+    const services = createSnakeskinServices(NodeFileSystem).Snakeskin;
+    const {diagnostics = []} = await extractDocument(fileName, services);
+    const errors = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Error);
+    const warnings = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Warning);
+
+    if (warnings.length > 0) {
+        console.warn(chalk.yellow(`Found ${warnings.length} warning(s):`));
+        for (const warning of warnings) {
+            console.warn(chalk.yellow(`line ${warning.range.start.line + 1}: ${warning.message}`));
+        }
+    }
+
+    if (errors.length > 0) {
+        console.error(chalk.red(`Found ${errors.length} error(s):`));
+        for (const validationError of errors) {
+            console.error(chalk.red(`line ${validationError.range.start.line + 1}: ${validationError.message}`));
+        }
+        process.exit(1);
+    }
+
+    if (warnings.length === 0 && errors.length === 0) {
+        console.log(chalk.green('Document is valid!'));
+    }
+}
+
 export default function(): void {
     const program = new Command();
 
@@ -50,6 +76,12 @@ export default function(): void {
         .option('--stdio', 'run in STDIO mode (for compatibility with non-Node clients)')
         .description('runs the standalone LSP server')
         .action(lspAction);
+
+    program
+        .command('validate')
+        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .description('parses and validates Snakeskin files')
+        .action(validateAction);
 
     program.parse(process.argv);
 }
