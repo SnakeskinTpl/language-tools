@@ -2,7 +2,7 @@ import type { Module } from '@snakeskin/language';
 import { createSnakeskinServices, SnakeskinLanguageMetaData } from '@snakeskin/language';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { extractAstNode, extractDocument } from './util.js';
+import { extractAstNode, extractDocuments } from './util.js';
 import { generateJavaScript } from './generator.js';
 import { NodeFileSystem } from 'langium/node';
 import { startLanguageServer } from 'langium/lsp';
@@ -32,29 +32,39 @@ export const lspAction = () => {
     startLanguageServer(shared);
 }
 
-export const validateAction = async (fileName: string) => {
+export const validateAction = async (fileOrDirName: string) => {
     const services = createSnakeskinServices(NodeFileSystem).Snakeskin;
-    const {diagnostics = []} = await extractDocument(fileName, services);
-    const errors = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Error);
-    const warnings = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Warning);
+    const docs = await extractDocuments(fileOrDirName, services);
 
-    if (warnings.length > 0) {
-        console.warn(chalk.yellow(`Found ${warnings.length} warning(s):`));
-        for (const warning of warnings) {
-            console.warn(chalk.yellow(`line ${warning.range.start.line + 1}: ${warning.message}`));
+    let errorsTotal = 0;
+    let warningsTotal = 0;
+
+    for (const {diagnostics = [], uri} of docs) {
+        const filePath = path.relative(fileOrDirName, uri.path) || fileOrDirName;
+        const errors = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Error);
+        const warnings = diagnostics.filter(diag => diag.severity === DiagnosticSeverity.Warning);
+
+        if (warnings.length > 0) {
+            warningsTotal += warnings.length;
+            for (const warning of warnings) {
+                console.warn(chalk.yellow(`${filePath}: line ${warning.range.start.line + 1}: ${warning.message}`));
+            }
+        }
+
+        if (errors.length > 0) {
+            errorsTotal += errors.length;
+            for (const validationError of errors) {
+                console.error(chalk.red(`${filePath}: line ${validationError.range.start.line + 1}: ${validationError.message}`));
+            }
         }
     }
 
-    if (errors.length > 0) {
-        console.error(chalk.red(`Found ${errors.length} error(s):`));
-        for (const validationError of errors) {
-            console.error(chalk.red(`line ${validationError.range.start.line + 1}: ${validationError.message}`));
-        }
+    const color = errorsTotal > 0 ? chalk.red : warningsTotal > 0 ? chalk.yellow : chalk.green;
+
+    console.log(color(`Found a total of ${errorsTotal} error(s) and ${warningsTotal} warning(s).`))
+
+    if (errorsTotal > 0) {
         process.exit(1);
-    }
-
-    if (warnings.length === 0 && errors.length === 0) {
-        console.log(chalk.green('Document is valid!'));
     }
 }
 
@@ -79,7 +89,7 @@ export default function(): void {
 
     program
         .command('validate')
-        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .argument('[path]', 'source file or directory; globs not supported yet', '.')
         .description('parses and validates Snakeskin files')
         .action(validateAction);
 
