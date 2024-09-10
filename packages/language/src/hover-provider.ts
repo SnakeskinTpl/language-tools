@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Hover, HoverParams } from 'vscode-languageserver';
-import { AstNode, LangiumDocument, MaybePromise, CstUtils } from 'langium';
+import { AstNode, LangiumDocument, MaybePromise, CstUtils, AstUtils } from 'langium';
 import { AstNodeHoverProvider } from 'langium/lsp';
 import { isAttribute, isReferencePath, isTag } from './generated/ast.js';
 import { getDefaultHTMLDataProvider } from 'vscode-html-languageservice/lib/esm/htmlLanguageService.js';
@@ -23,7 +23,7 @@ export class HoverProvider extends AstNodeHoverProvider {
     }
 
     // The actual logic of getting hover content for a specific node
-    async getAstNodeHoverContent(node: AstNode): Promise<Hover|undefined> {
+    override async getAstNodeHoverContent(node: AstNode): Promise<Hover|undefined> {
         const range = node.$cstNode?.range;
 
         if (isTag(node)) {
@@ -66,8 +66,7 @@ export class HoverProvider extends AstNodeHoverProvider {
                 return {contents: generateDocumentation(attr, undefined, true), range};
             }
         } else if (isReferencePath(node)) {
-            const uri = node.$cstNode?.root.astNode.$document?.textDocument.uri;
-            if (uri == undefined) return;
+            const uri = AstUtils.getDocument(node).textDocument.uri;
             if (node.name === '%fileName%') {
                 return {contents: path.basename(uri, '.ss'), range};
             } else if (node.name === '%dirName%') {
