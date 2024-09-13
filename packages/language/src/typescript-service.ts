@@ -90,6 +90,8 @@ export class TypeScriptServices {
         if (this.options == null) {
             return [];
         }
+        // Ignore the 'as' part (not relevant for path resolution)
+        includePath = includePath.split(':')[0];
 
         if (includePath.endsWith('.ss')) {
             // Importing a specific file directly
