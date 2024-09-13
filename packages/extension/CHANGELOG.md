@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Go to definition support for `include` directives.
+- Validation that `include` directive paths exist.
 
 ### Fixed
 

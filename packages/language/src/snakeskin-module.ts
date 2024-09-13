@@ -35,7 +35,7 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
         Lexer: (services) => new SnakeskinLexer(services),
     },
     validation: {
-        SnakeskinValidator: () => new SnakeskinValidator(),
+        SnakeskinValidator: (services) => new SnakeskinValidator(services),
     },
     lsp: {
         SemanticTokenProvider: (services) => new SemanticTokenProvider(services),
