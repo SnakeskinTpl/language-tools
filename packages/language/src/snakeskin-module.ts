@@ -6,6 +6,7 @@ import { SnakeskinTokenBuilder, SnakeskinLexer } from './parser/snakeskin-lexer.
 import { SemanticTokenProvider } from './semantic-tokens.js';
 import { HoverProvider } from './hover-provider.js';
 import { TypeScriptServices } from './typescript-service.js';
+import { SnakeskinDefinitionProvider } from './definition-provider.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -39,6 +40,7 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
     lsp: {
         SemanticTokenProvider: (services) => new SemanticTokenProvider(services),
         HoverProvider: (services) => new HoverProvider(services),
+        DefinitionProvider: (services) => new SnakeskinDefinitionProvider(services),
     },
     TypeScript: (services) => new TypeScriptServices(services),
 };

@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Go to definition support for `include` directives.
+
 ### Fixed
 
 - Some diagnostic messages related to parsing errors around indentation were not being shown.
-- Parser now allows commas to appear at the beginning of plain text
+- Parser now allows commas to appear at the beginning of plain text.
 
 ## [0.0.4] - 2024-08-15
 
