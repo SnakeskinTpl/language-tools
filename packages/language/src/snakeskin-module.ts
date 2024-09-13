@@ -5,6 +5,7 @@ import { SnakeskinValidator, registerValidationChecks } from './snakeskin-valida
 import { SnakeskinTokenBuilder, SnakeskinLexer } from './parser/snakeskin-lexer.js';
 import { SemanticTokenProvider } from './semantic-tokens.js';
 import { HoverProvider } from './hover-provider.js';
+import { TypeScriptServices } from './typescript-service.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -12,7 +13,8 @@ import { HoverProvider } from './hover-provider.js';
 export type SnakeskinAddedServices = {
     validation: {
         SnakeskinValidator: SnakeskinValidator
-    }
+    },
+    TypeScript: TypeScriptServices,
 }
 
 /**
@@ -38,6 +40,7 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
         SemanticTokenProvider: (services) => new SemanticTokenProvider(services),
         HoverProvider: (services) => new HoverProvider(services),
     },
+    TypeScript: (services) => new TypeScriptServices(services),
 };
 
 /**
