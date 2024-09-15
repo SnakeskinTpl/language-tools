@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CLI subcommand for running validation checks.
+
 ### Fixed
 
 - Some diagnostic messages related to parsing errors around indentation were not being shown.
