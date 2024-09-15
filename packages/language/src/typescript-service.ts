@@ -100,11 +100,11 @@ export class TypeScriptServices {
             // Importing a directory
             // 1- Try appending the final dirname with .ss extension
             const attempt1 = this.resolveSnakeskinIncludeHelper(`${includePath}/${path.basename(includePath)}.ss`, containingFile, this.options);
-            if (attempt1 != null) { return attempt1; }
+            if (attempt1.length > 0) { return attempt1; }
 
             // 2- Try appending "main.ss"
             const attempt2 = this.resolveSnakeskinIncludeHelper(`${includePath}/main.ss`, containingFile, this.options);
-            if (attempt2 != null) { return attempt2; }
+            if (attempt2.length > 0) { return attempt2; }
 
             // 3- Try appending "index.ss"
             const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFile, this.options);
