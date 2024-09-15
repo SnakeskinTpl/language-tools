@@ -7,13 +7,12 @@ import type { SnakeskinServices } from "./snakeskin-module";
 
 export class TypeScriptServices {
     protected readonly languageService: ts.LanguageService;
-    protected readonly options: ts.CompilerOptions;
+    /** A mapping from workspace root URI path to compiler options */
+    protected readonly options: Record<string, ts.CompilerOptions> = {};
 
     constructor(services: SnakeskinServices) {
-        this.options = TypeScriptServices.getCompilerOptions();
-
         const host: ts.LanguageServiceHost = {
-            getCompilationSettings: () => this.options,
+            getCompilationSettings: () => this.getCompilerOptions(ts.sys.getCurrentDirectory()),
             getScriptFileNames: () => {
                 // TODO
                 return [];
@@ -36,16 +35,22 @@ export class TypeScriptServices {
         const docRegistry = ts.createDocumentRegistry(ts.sys.useCaseSensitiveFileNames, ts.sys.getCurrentDirectory());
 
         this.languageService = ts.createLanguageService(host, docRegistry);
+
+        void services.shared.workspace.WorkspaceManager.ready.then(() => {
+            services.shared.workspace.WorkspaceManager.workspaceFolders.forEach(folder => {
+                this.options[folder.uri] = this.getCompilerOptions(URI.parse(folder.uri).path);
+            });
+        });
     };
 
-    private static getCompilerOptions(): ts.CompilerOptions {
-        const currentDir = ts.sys.getCurrentDirectory();
-        const path = ts.findConfigFile(currentDir, ts.sys.fileExists);
+    private getCompilerOptions(rootPath: string): ts.CompilerOptions {
+        // `findConfigFile` operates on file system paths, not URI (cannot have "file://" protocol)
+        const path = ts.findConfigFile(rootPath, ts.sys.fileExists);
         if (path == null) {
             return ts.getDefaultCompilerOptions();
         }
         const json = ts.parseJsonText(path, fs.readFileSync(path, { encoding: 'utf-8' }));
-        const parsed = ts.parseJsonSourceFileConfigFileContent(json, ts.sys, currentDir);
+        const parsed = ts.parseJsonSourceFileConfigFileContent(json, ts.sys, rootPath);
         return parsed.options;
     }
 
@@ -84,32 +89,37 @@ export class TypeScriptServices {
      * It reuses the resolution algorithm of TypeScript instead of reimplementing the exact logic of the 'b' filter.
      *
      * @param includePath The path specified in the include directive
-     * @param containingFile The path of the file in which the include directive is used
+     * @param containingFileUri The path of the file in which the include directive is used
      * @returns The resolved absolute path(s). Can be an array due to possibility of globs.
      */
     resolveSnakeskinInclude(includePath: string, containingFileUri: URI): string[] {
-        if (this.options == null) {
-            return [];
-        }
         // Ignore the 'as' part (not relevant for path resolution)
         includePath = includePath.split(':')[0];
-        const containingFile = containingFileUri.path;
+        const containingFilePath = containingFileUri.path;
+
+        const options = Object.entries(this.options).find(([workspace, ]) => {
+            return containingFileUri.toString().startsWith(workspace);
+        })?.[1];
+
+        if (options == null) {
+            return [];
+        }
 
         if (includePath.endsWith('.ss')) {
             // Importing a specific file directly
-            return this.resolveSnakeskinIncludeHelper(includePath, containingFile, this.options);
+            return this.resolveSnakeskinIncludeHelper(includePath, containingFilePath, options);
         } else {
             // Importing a directory
             // 1- Try appending the final dirname with .ss extension
-            const attempt1 = this.resolveSnakeskinIncludeHelper(`${includePath}/${path.basename(includePath)}.ss`, containingFile, this.options);
+            const attempt1 = this.resolveSnakeskinIncludeHelper(`${includePath}/${path.basename(includePath)}.ss`, containingFilePath, options);
             if (attempt1.length > 0) { return attempt1; }
 
             // 2- Try appending "main.ss"
-            const attempt2 = this.resolveSnakeskinIncludeHelper(`${includePath}/main.ss`, containingFile, this.options);
+            const attempt2 = this.resolveSnakeskinIncludeHelper(`${includePath}/main.ss`, containingFilePath, options);
             if (attempt2.length > 0) { return attempt2; }
 
             // 3- Try appending "index.ss"
-            const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFile, this.options);
+            const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFilePath, options);
             return attempt3;
         }
     }
