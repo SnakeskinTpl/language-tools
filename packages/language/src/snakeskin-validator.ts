@@ -75,7 +75,7 @@ export class SnakeskinValidator {
     validateIncludePath(include: Include, accept: ValidationAcceptor): void {
         const doc = AstUtils.getDocument(include);
         const path = include.path;
-        const importTargets = this.ts.resolveSnakeskinInclude(path, doc.uri.path);
+        const importTargets = this.ts.resolveSnakeskinInclude(path, doc.uri);
 
         if (importTargets.length === 0) {
             accept('error', 'Cannot resolve import', {

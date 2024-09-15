@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { globSync } from "glob";
+import { URI } from "langium";
 import type { SnakeskinServices } from "./snakeskin-module";
 
 export class TypeScriptServices {
@@ -86,12 +87,13 @@ export class TypeScriptServices {
      * @param containingFile The path of the file in which the include directive is used
      * @returns The resolved absolute path(s). Can be an array due to possibility of globs.
      */
-    resolveSnakeskinInclude(includePath: string, containingFile: string): string[] {
+    resolveSnakeskinInclude(includePath: string, containingFileUri: URI): string[] {
         if (this.options == null) {
             return [];
         }
         // Ignore the 'as' part (not relevant for path resolution)
         includePath = includePath.split(':')[0];
+        const containingFile = containingFileUri.path;
 
         if (includePath.endsWith('.ss')) {
             // Importing a specific file directly

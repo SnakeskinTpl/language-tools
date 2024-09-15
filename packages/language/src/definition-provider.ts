@@ -17,7 +17,7 @@ export class SnakeskinDefinitionProvider extends DefaultDefinitionProvider {
         const node = sourceCstNode.astNode;
         if (isInclude(node)) {
             const doc = AstUtils.getDocument(node);
-            const importTargets = this.ts.resolveSnakeskinInclude(node.path, doc.uri.path);
+            const importTargets = this.ts.resolveSnakeskinInclude(node.path, doc.uri);
 
             return importTargets.map(target => LocationLink.create(
                 // The import target is converted to URI (even though it is already an absolute path) to match the format used
