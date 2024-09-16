@@ -1,5 +1,5 @@
 {
-    "name": "@snakeskin/vscode",
+    "name": "snakeskin",
     "description": "Language support for Snakeskin",
     "version": "0.0.5",
     "displayName": "Snakeskin",
