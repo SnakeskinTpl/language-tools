@@ -1,32 +1,36 @@
 import type { IMultiModeLexerDefinition, TokenType, TokenPattern } from 'chevrotain';
 import type { Grammar, GrammarAST, LexerResult, TokenBuilderOptions } from 'langium';
-import { isTokenTypeArray, RegExpUtils } from 'langium';
-import { IndentationAwareTokenBuilder, REGULAR_MODE, IGNORE_INDENTATION_MODE, IndentationAwareLexer } from './indentation-aware.js';
+import {
+	isTokenTypeArray,
+	RegExpUtils,
+	isIMultiModeLexerDefinition,
+	IndentationAwareTokenBuilder,
+	IndentationAwareLexer,
+	LexingMode,
+} from 'langium';
 import { consumeLiteral } from './js-literal.js';
-import { SnakeskinTerminals } from '../generated/ast.js';
+import { SnakeskinTokenNames, SnakeskinTerminalNames, SnakeskinKeywordNames } from '../generated/ast.js';
 
-type Terminals = keyof typeof SnakeskinTerminals;
-
-export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Terminals> {
+export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<SnakeskinTerminalNames, SnakeskinKeywordNames> {
 	/** Keywords that are allowed at the beginning of a line, otherwise they would be detected as text */
-	readonly startOfLineWhitelist = new Set<string>(['-', '+=', '<', '*', '?']);
+	readonly startOfLineWhitelist = new Set<SnakeskinTokenNames>(['-', '+=', '<', '*', '?']);
 
 	/** Keywords that must be preceded by '-'. This is to avoid them being detected as keywords in other places */
-	readonly dashOnlyKeywords = new Set<string>([
+	readonly dashOnlyKeywords = new Set<SnakeskinTokenNames>([
 		'namespace', 'block', 'return', 'eval', 'head', 'with', 'else', 'switch',
 		'for', 'break', 'continue', 'forEach', 'forIn', 'try', 'throw', 'catch', 'finally', 'doctype',
 		'include', 'import', 'target', 'super',
 	]);
 
 	/** Keywords that can come after '-' or '- else' */
-	readonly dashOrElseKeywords = new Set<string>(['if', 'unless']);
+	readonly dashOrElseKeywords = new Set<SnakeskinTokenNames>(['if', 'unless']);
 
 	/** Keywords that can only appear after 'as' (used in includes) or '-' */
-	readonly dashOrAsKeywords = new Set<string>(['placeholder', 'interface']);
+	readonly dashOrAsKeywords = new Set<SnakeskinTokenNames>(['placeholder', 'interface']);
 
 	constructor() {
 		super({
-			ignoreIndentationDelimeters: [
+			ignoreIndentationDelimiters: [
 				['AMPERSAND_NL', 'DOT_NL'],
 			],
 		});
@@ -34,21 +38,33 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Terminal
 
 	override buildTokens(grammar: Grammar, options?: TokenBuilderOptions | undefined): IMultiModeLexerDefinition {
 		const tokens = super.buildTokens(grammar, options);
-		const regularTokens = isTokenTypeArray(tokens) ? tokens : tokens.modes[REGULAR_MODE];
-		const ignoreIndentTokens = isTokenTypeArray(tokens) ? tokens : tokens.modes[IGNORE_INDENTATION_MODE];
-		const defaultMode = isTokenTypeArray(tokens) ? REGULAR_MODE : tokens.defaultMode;
+
+		let regularTokens: TokenType[];
+		let ignoreIndentTokens: TokenType[];
+		let defaultMode: string = LexingMode.REGULAR;
+
+		if (isTokenTypeArray(tokens)) {
+			regularTokens = ignoreIndentTokens = tokens;
+		} else if (isIMultiModeLexerDefinition(tokens)) {
+			regularTokens = tokens.modes[LexingMode.REGULAR];
+			ignoreIndentTokens = tokens.modes[LexingMode.IGNORE_INDENTATION];
+			defaultMode = tokens.defaultMode;
+		} else {
+			regularTokens = ignoreIndentTokens = Object.values(tokens);
+		}
 
 		return {
 			modes: {
-				[REGULAR_MODE]: regularTokens.filter(token => token.name !== 'ATTR_VAL_ML'),
-				[IGNORE_INDENTATION_MODE]: ignoreIndentTokens.filter(token => !['ATTR_VAL_SL', 'TEXT'].includes(token.name)),
+				[LexingMode.REGULAR]: regularTokens.filter(token => token.name !== 'ATTR_VAL_ML'),
+				[LexingMode.IGNORE_INDENTATION]: ignoreIndentTokens.filter(token => !['ATTR_VAL_SL', 'TEXT'].includes(token.name)),
 			},
 			defaultMode,
 		};
 	}
 
 	protected override buildKeywordPattern(keywordNode: GrammarAST.Keyword, caseInsensitive: boolean): TokenPattern {
-		const {value: keyword} = keywordNode;
+		const { value } = keywordNode;
+		const keyword = value as SnakeskinTokenNames;
 		// To avoid conflicts with TEXT/ID, the keyword tokens can only appear after '\n- '
 		if (this.startOfLineWhitelist.has(keyword)) {
 			const escaped = RegExpUtils.escapeRegExp(keyword);
