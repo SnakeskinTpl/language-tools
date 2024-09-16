@@ -1,6 +1,7 @@
-import type { ValidationAcceptor, ValidationChecks } from 'langium';
-import type { SnakeskinAstType, Attribute } from './generated/ast.js';
+import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import type { SnakeskinAstType, Attribute, Include } from './generated/ast.js';
 import type { SnakeskinServices } from './snakeskin-module.js';
+import type { TypeScriptServices } from './typescript-service.js';
 
 /**
  * Register custom validation checks.
@@ -10,6 +11,7 @@ export function registerValidationChecks(services: SnakeskinServices) {
     const validator = services.validation.SnakeskinValidator;
     const checks: ValidationChecks<SnakeskinAstType> = {
         Attribute: [validator.validateAttributesMissingBar],
+        Include: [validator.validateIncludePath],
     };
     registry.register(checks, validator);
 }
@@ -18,6 +20,11 @@ export function registerValidationChecks(services: SnakeskinServices) {
  * Implementation of custom validations.
  */
 export class SnakeskinValidator {
+    private ts: TypeScriptServices;
+
+    constructor(services: SnakeskinServices) {
+        this.ts = services.TypeScript;
+    }
 
     /**
      * Check for possibly missing a  ' | ' after an attribute value by finding a line in the value
@@ -59,6 +66,22 @@ export class SnakeskinValidator {
                     },
                 }
             );
+        }
+    }
+
+    /**
+     * Checks that the include path actually exists
+     */
+    validateIncludePath(include: Include, accept: ValidationAcceptor): void {
+        const doc = AstUtils.getDocument(include);
+        const path = include.path;
+        const importTargets = this.ts.resolveSnakeskinInclude(path, doc.uri);
+
+        if (importTargets.length === 0) {
+            accept('error', 'Cannot resolve import', {
+                node: include,
+                property: 'path',
+            });
         }
     }
 
