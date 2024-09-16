@@ -19,19 +19,23 @@ export async function extractDocument(fileName: string, services: LangiumCoreSer
     const document = await services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
     await services.shared.workspace.DocumentBuilder.build([document], { validation: true });
 
-    const validationErrors = (document.diagnostics ?? []).filter(e => e.severity === 1);
-    if (validationErrors.length > 0) {
-        console.error(chalk.red('There are validation errors:'));
-        for (const validationError of validationErrors) {
-            console.error(chalk.red(
-                `line ${validationError.range.start.line + 1}: ${validationError.message} [${document.textDocument.getText(validationError.range)}]`
-            ));
-        }
-        process.exit(1);
-    }
-
     return document;
 }
+
+export async function extractDocuments(fileOrDirName: string, services: LangiumCoreServices): Promise<LangiumDocument[]> {
+    if (!fs.existsSync(fileOrDirName)) {
+        console.error(chalk.red(`No such file or directory: ${fileOrDirName}.`));
+        process.exit(1);
+    }
+    if (!fs.lstatSync(fileOrDirName).isDirectory()) {
+        return [await extractDocument(fileOrDirName, services)];
+    }
+    const extensions = services.LanguageMetaData.fileExtensions;
+    const files = fs.readdirSync(fileOrDirName, { encoding:'utf8', recursive: true })
+                    .filter(file => extensions.includes(path.extname(file)));
+    return Promise.all(files.map(file => extractDocument(path.join(fileOrDirName, file), services)));
+}
+
 
 export async function extractAstNode<T extends AstNode>(fileName: string, services: LangiumCoreServices): Promise<T> {
     return (await extractDocument(fileName, services)).parseResult?.value as T;
