@@ -27,12 +27,12 @@
     },
     "scripts": {
         "clean": "shx rm -fr *.tsbuildinfo out",
-        "build": "tsc",
+        "build": "tsc -p tsconfig.src.json",
         "build:clean": "npm run clean && npm run build",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
         "test": "vitest run",
-        "watch": "tsc --watch"
+        "watch": "tsc -p tsconfig.src.json --watch"
     },
     "dependencies": {
         "@vue/language-service": "^2.0.29",
