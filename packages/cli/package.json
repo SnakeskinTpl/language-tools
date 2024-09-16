@@ -1,7 +1,7 @@
 {
     "name": "@snakeskin/cli",
     "description": "The cli specific package",
-    "version": "0.0.1",
+    "version": "0.0.5",
     "type": "module",
     "engines": {
         "node": ">=18.0.0"
@@ -21,7 +21,7 @@
         "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
-        "@snakeskin/language": "0.0.1",
+        "@snakeskin/language": "0.0.5",
         "chalk": "~5.3.0",
         "commander": "~11.1.0"
     },

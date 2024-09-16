@@ -1,7 +1,7 @@
 {
     "name": "@snakeskin/vscode",
     "description": "Language support for Snakeskin",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "displayName": "Snakeskin",
     "repository": "https://github.com/SnakeskinTpl/vscode-snakeskin/",
     "publisher": "SnakeskinTpl",
@@ -42,7 +42,7 @@
         "watch": "npm run build:prepare && concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
-        "@snakeskin/language": "0.0.1",
+        "@snakeskin/language": "0.0.5",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },
