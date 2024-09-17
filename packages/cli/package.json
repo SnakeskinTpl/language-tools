@@ -1,7 +1,7 @@
 {
     "name": "@snakeskin/cli",
     "description": "The cli specific package",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "type": "module",
     "engines": {
         "node": ">=18.0.0"
@@ -15,6 +15,7 @@
         "snakeskin-cli": "./bin/cli.js"
     },
     "scripts": {
+        "prepublishOnly": "npm run build",
         "clean": "shx rm -fr *.tsbuildinfo out",
         "build": "tsc && node esbuild.mjs",
         "build:clean": "npm run clean && npm run build",
