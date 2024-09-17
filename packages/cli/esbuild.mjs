@@ -34,7 +34,17 @@ const ctx = await esbuild.context({
     format: 'esm',
     platform: 'node',
     banner: {
-        js: "import { createRequire } from 'module';\nconst require = createRequire(import.meta.url);",
+        // For compatibility with CJS dependencies
+        js: [
+            "import { createRequire } from 'node:module';",
+            // Renaming to avoid possible conflicts
+            "import { dirname as dirname2 } from 'node:path';",
+            "import { fileURLToPath as fileUrlToPath2 } from 'node:url';",
+
+            "const require = createRequire(import.meta.url);",
+            "const __filename = fileURLToPath2(import.meta.url);",
+            "const __dirname = dirname2(__filename);",
+        ].join('\n'),
     },
     sourcemap: !minify,
     minify,

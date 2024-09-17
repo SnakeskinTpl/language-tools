@@ -1,7 +1,7 @@
 {
     "name": "@snakeskin/cli",
     "description": "The cli specific package",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "type": "module",
     "engines": {
         "node": ">=18.0.0"
@@ -12,7 +12,7 @@
         "src"
     ],
     "bin": {
-        "snakeskin-cli": "./bin/cli.js"
+        "snakeskin-cli": "bin/cli.js"
     },
     "scripts": {
         "prepublishOnly": "npm run build",
