@@ -206,7 +206,7 @@ With:
 Var:
     COLON
     ('putIn' name=ID Body
-    | name=ID ('=' initialValue=(AttrVal|EXPR_TILL_EOL))?
+    | name=ID ('=' initialValue=AttrVal)?
     )
 ;
 
@@ -352,7 +352,6 @@ Attribute:
       (DOT modifiers+=ID)*
       ('=' value=AttrVal)?
     )
-    | interpolated=INTERPOLATION
 ;
 
 Class:
@@ -453,9 +452,12 @@ Ignore: {infer Ignore} '-' '@@ignore'; // TODO: actually this shouldn't be speci
 // and custom pattern functions, or perhaps a custom lexer from scratch (not using Chevrotain's lexer)
 
 AttrKey returns string:
-    COLON? ATTR_KEY | COLON? ID | COLON? DASHED_ID | INTERPOLATION |
+    COLON? ATTR_KEY |
+    COLON? ID |
+    COLON DASHED_ID |
+    DASHED_ID (COLON AttrKey)? |
+    INTERPOLATION |
     L_BRAC ID (DOT ID)* R_BRAC |
-    DASHED_ID COLON AttrKey |
     '#' AttrKey
 ;
 
@@ -466,12 +468,8 @@ ClassName returns string:
 ;
 
 TagName returns string:
-    AT? ID |
-    AT? DASHED_ID |
-    COLON? ID |
-    COLON? DASHED_ID |
-    INTERPOLATION |
-    ID INTERPOLATION // special case for "h{i}"
+    (AT|COLON)? (ID|DASHED_ID) INTERPOLATION? |
+    INTERPOLATION
 ;
 
 JS_Array returns string: L_BRAC (STRING (COMMA STRING)*)? R_BRAC;
