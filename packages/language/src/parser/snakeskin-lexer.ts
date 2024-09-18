@@ -62,6 +62,18 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 		};
 	}
 
+	// TODO: remove this override when https://github.com/eclipse-langium/langium/pull/1685 is merged
+	protected override buildKeywordToken(keyword: GrammarAST.Keyword, terminalTokens: TokenType[], caseInsensitive: boolean): TokenType {
+		const keywordPattern = this.buildKeywordPattern(keyword, caseInsensitive);
+
+		return {
+			name: keyword.value,
+			PATTERN: keywordPattern,
+			LINE_BREAKS: typeof keywordPattern === 'function',
+			LONGER_ALT: this.findLongerAlt(keyword, terminalTokens)
+		};
+	}
+
 	protected override buildKeywordPattern(keywordNode: GrammarAST.Keyword, caseInsensitive: boolean): TokenPattern {
 		const { value } = keywordNode;
 		const keyword = value as SnakeskinTokenNames;
@@ -148,6 +160,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				}
 				return [text.substring(offset, i)];
 			}
+			tokenType.LINE_BREAKS = true;
 		} else if (tokenType.name === 'PARAM_DEFAULT_VALUE') {
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				if (tokens.length < 3) return null;
@@ -165,6 +178,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				}
 				return null;
 			}
+			tokenType.LINE_BREAKS = true;
 		} else if (tokenType.name === 'EXPR_TILL_EOL') {
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				// The " |" part is to support single line attribute values as well
@@ -185,6 +199,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				}
 				return singleLineMatch;
 			}
+			tokenType.LINE_BREAKS = true;
 		}
 		return tokenType;
 	}
