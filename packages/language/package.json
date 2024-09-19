@@ -29,7 +29,7 @@
         "clean": "shx rm -fr *.tsbuildinfo out",
         "build": "tsc -p tsconfig.src.json",
         "build:clean": "npm run clean && npm run build",
-        "langium:generate": "langium generate",
+        "langium:generate": "langium generate --mode=production",
         "langium:watch": "langium generate --watch",
         "test": "vitest run",
         "watch": "tsc -p tsconfig.src.json --watch"
