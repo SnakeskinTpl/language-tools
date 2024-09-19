@@ -14,8 +14,8 @@ Currently, the following features are supported:
 
 - Syntax highlighting
 - Diagnostic messages (for parsing errors)
-- Go to declaration by include derective
-- Include derective validation for paths exist
+- Go to definition for `include` directive
+- `include` directive validation for paths existence
 
 Only Jade-like syntax is supported.
 
@@ -38,13 +38,13 @@ Only Jade-like syntax is supported.
 
 ### Manual setup
 
-For plugin we need globally pre-installed @snakeskin/cli because plugin run cli command
+For the plugin to work, we need to install `@snakeskin/cli` globally because the plugin runs the LSP server through a CLI subcommand:
 
       npm i -g @snakeskin/cli
 
 ### Automatic setup
 
-If you want the cli to be installed automatically when run nvim or open *.ss file, you should add mason tools managment plugins
+If you want the CLI to be installed automatically when running `nvim` or opening a `*.ss` file, you should add the mason package manager plugin:
 
 [lazy.nvim](https://github.com/folke/lazy.nvim)
 
@@ -67,7 +67,7 @@ If you want the cli to be installed automatically when run nvim or open *.ss fil
 
 ### Manual update
 
-If you install cli by npm, you could update lsp like other npm packages.
+If you install the CLI using npm, you can update the LSP server like other npm packages:
 
     npm update -g @snakeskin/cli
 
