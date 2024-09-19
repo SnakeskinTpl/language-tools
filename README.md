@@ -8,6 +8,7 @@ It consists of the following packages:
 - [packages/extension](./packages/extension/langium-quickstart.md): Contains the VSCode extension.
 - [packages/web](./packages/web/README.md): Contains the language server running in a web browser and a monaco-editor with language support similar to the one from VSCode. Useful as a playground for experimenting with the language.
 - [packages/intellij-plugin](./packages/intellij-plugin/README.md): A plugin for IntelliJ-based editors using LSP.
+- [packages/neovim](./packages/neovim/README.md): LSP setup for Neovim.
 
 ## What's in the folder?
 
