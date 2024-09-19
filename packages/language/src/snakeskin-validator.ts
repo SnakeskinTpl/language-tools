@@ -1,5 +1,5 @@
 import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import type { SnakeskinAstType, Attribute, Include } from './generated/ast.js';
+import { type SnakeskinAstType, type Attribute, type Include, type Module, isNamespace } from './generated/ast.js';
 import type { SnakeskinServices } from './snakeskin-module.js';
 import type { TypeScriptServices } from './typescript-service.js';
 
@@ -12,6 +12,7 @@ export function registerValidationChecks(services: SnakeskinServices) {
     const checks: ValidationChecks<SnakeskinAstType> = {
         Attribute: [validator.validateAttributesMissingBar],
         Include: [validator.validateIncludePath],
+        Module: [validator.ensureSingleNamespacePerModule],
     };
     registry.register(checks, validator);
 }
@@ -83,6 +84,15 @@ export class SnakeskinValidator {
                 property: 'path',
             });
         }
+    }
+
+    ensureSingleNamespacePerModule(module: Module, accept: ValidationAcceptor) {
+        const extraNamespaces = module.directives.filter(isNamespace).slice(1);
+        extraNamespaces.forEach(namespace => {
+            accept('error', 'There cannot be more than one namespace in a single file', {
+                node: namespace,
+            });
+        });
     }
 
 }
