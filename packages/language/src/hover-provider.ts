@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Hover, HoverParams } from 'vscode-languageserver';
-import { AstNode, LangiumDocument, MaybePromise, CstUtils, AstUtils } from 'langium';
+import { AstNode, LangiumDocument, MaybePromise, CstUtils, AstUtils, GrammarUtils } from 'langium';
 import { AstNodeHoverProvider } from 'langium/lsp';
 import { isAttribute, isReferencePath, isTag } from './generated/ast.js';
 import { getDefaultHTMLDataProvider } from 'vscode-html-languageservice/lib/esm/htmlLanguageService.js';
@@ -24,11 +24,17 @@ export class HoverProvider extends AstNodeHoverProvider {
 
     // The actual logic of getting hover content for a specific node
     override async getAstNodeHoverContent(node: AstNode): Promise<Hover|undefined> {
-        const range = node.$cstNode?.range;
+        let range = node.$cstNode?.range;
 
         if (isTag(node)) {
             const name = ['.', undefined].includes(node.tagName) ? 'div' : node.tagName.toLowerCase();
             const vueTag = this.vueData.tags?.find(tag => tag.name.toLowerCase() === name);
+
+            const tagNameCst = GrammarUtils.findNodeForProperty(node.$cstNode, 'tagName');
+            if (tagNameCst) {
+                range = tagNameCst.range;
+            }
+
             if (vueTag) {
                 return {contents: generateDocumentation(vueTag, undefined, true), range};
             }
@@ -45,6 +51,11 @@ export class HoverProvider extends AstNodeHoverProvider {
             const {key} = node;
             if (!key) return;
             const normalizedKey = key.replace(/^:/, '').replace(/^@/, '').toLowerCase();
+
+            const keyCst = GrammarUtils.findNodeForProperty(node.$cstNode, 'key');
+            if (keyCst) {
+                range = keyCst.range;
+            }
 
             const vueGlobalAttr = this.vueData.globalAttributes?.find(attr => attr.name.toLowerCase() === node.key);
             if (vueGlobalAttr) {

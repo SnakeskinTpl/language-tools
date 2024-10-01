@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Minor improvements to the grammar to fix some of the ambiguities.
+- Improve hover highlight range for tags and attributes
 
 ### Changed
 
