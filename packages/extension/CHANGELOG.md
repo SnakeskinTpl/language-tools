@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support providing folding ranges (the `textDocument/foldingRange` LSP request).
+
 ### Fixed
 
 - Minor improvements to the grammar to fix some of the ambiguities.

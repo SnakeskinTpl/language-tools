@@ -8,6 +8,7 @@ import { HoverProvider } from './hover-provider.js';
 import { TypeScriptServices } from './typescript-service.js';
 import { SnakeskinDefinitionProvider } from './definition-provider.js';
 import { SnakeskinWorkspaceManager } from './workspace-manager.js';
+import { SnakeskinFoldingRangeProvider } from './folding-ranges.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -48,6 +49,7 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
         SemanticTokenProvider: (services) => new SemanticTokenProvider(services),
         HoverProvider: (services) => new HoverProvider(services),
         DefinitionProvider: (services) => new SnakeskinDefinitionProvider(services),
+        FoldingRangeProvider: (services) => new SnakeskinFoldingRangeProvider(services),
     },
     TypeScript: (services) => new TypeScriptServices(services),
 };
