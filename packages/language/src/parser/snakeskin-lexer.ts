@@ -1,4 +1,4 @@
-import type { IMultiModeLexerDefinition, TokenType, TokenPattern } from 'chevrotain';
+import type { IMultiModeLexerDefinition, TokenType, TokenPattern, IToken, CustomPatternMatcherFunc } from 'chevrotain';
 import type { Grammar, GrammarAST, LexerResult, TokenBuilderOptions } from 'langium';
 import {
 	isTokenTypeArray,
@@ -34,6 +34,53 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				['AMPERSAND_NL', 'DOT_NL'],
 			],
 		});
+	}
+
+	// TODO: remove this override after https://github.com/eclipse-langium/langium/pull/1708 is released
+	protected override dedentMatcher(text: string, offset: number, tokens: IToken[], groups: Record<string, IToken[]>): ReturnType<CustomPatternMatcherFunc> {
+		if (!this.isStartOfLine(text, offset)) {
+				return null;
+		}
+
+		const { currIndentLevel, prevIndentLevel, match } = this.matchWhitespace(text, offset, tokens, groups);
+
+		if (currIndentLevel >= prevIndentLevel || match == null) {
+				// bigger indentation (should be matched by indent)
+				// or same indentation level (should be matched by whitespace and ignored)
+				return null;
+		}
+
+		const matchIndentIndex = this.indentationStack.lastIndexOf(currIndentLevel);
+
+		// Any dedent must match some previous indentation level.
+		if (matchIndentIndex === -1) {
+				this.diagnostics.push({
+						severity: 'error',
+						message: `Invalid dedent level ${currIndentLevel} at offset: ${offset}. Current indentation stack: ${this.indentationStack}`,
+						offset,
+						length: match?.[0]?.length ?? 0,
+						line: this.getLineNumber(text, offset),
+						column: 1
+				});
+				return null;
+		}
+
+		const numberOfDedents = this.indentationStack.length - matchIndentIndex - 1;
+		const newlinesBeforeDedent = text.substring(0, offset).match(/[\r\n]+$/)?.[0].length ?? 1;
+
+		for (let i = 0; i < numberOfDedents; i++) {
+				const token = this.createIndentationTokenInstance(
+						this.dedentTokenType,
+						text,
+						'',  // Dedents are 0-width tokens
+						offset - (newlinesBeforeDedent - 1), // Place the dedent after the first new line character
+				);
+				tokens.push(token);
+				this.indentationStack.pop();
+		}
+
+		// Token already added, let the dedentation now be consumed as whitespace (if any) and ignored
+		return null;
 	}
 
 	override buildTokens(grammar: Grammar, options?: TokenBuilderOptions | undefined): IMultiModeLexerDefinition {
