@@ -4,6 +4,16 @@
 // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 {
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Run and debug",
+            "configurations": [
+                "Run Extension",
+                "Attach to Language Server"
+            ],
+            "stopAll": true
+        }
+    ],
     "configurations": [
         {
             "name": "Run Extension",
