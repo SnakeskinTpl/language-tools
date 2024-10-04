@@ -105,6 +105,26 @@ jobs:
           extensionFile: ${{ needs.build-vsix.outputs.vsixName }}
           registryUrl: https://open-vsx.org
 
+  publish-npm-packages:
+    name: Publish NPM packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20 📦
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Publish language package
+        run: npm publish -w @snakeskin/language --access public
+
+      - name: Publish CLI package
+        run: npm publish -w @snakeskin/cli --access public
+
+
   # I'm not sure how to upload the zip file and then publish it separately
   build-and-publish-jetbrains:
     name: Build and publish for JetBrains IDEs

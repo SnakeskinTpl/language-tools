@@ -26,6 +26,7 @@
         }
     },
     "scripts": {
+        "prepublishOnly": "npm run langium:generate && npm run build",
         "clean": "shx rm -fr *.tsbuildinfo out",
         "build": "tsc -p tsconfig.src.json",
         "build:clean": "npm run clean && npm run build",
