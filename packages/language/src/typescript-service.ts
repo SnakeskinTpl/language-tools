@@ -69,8 +69,8 @@ export class TypeScriptServices {
     /**
      * Internal helper for {@link resolveSnakeskinInclude} to minmize repetition.
      */
-    private resolveSnakeskinIncludeHelper(includePath: string, containingFile: string, options: ts.CompilerOptions): string[] {
-        const { resolvedModule } = ts.resolveModuleName(includePath, containingFile, options, TypeScriptServices.snakeskinModuleResolutionHost);
+    private resolveSnakeskinIncludeHelper(includePath: string, containingFile: URI, options: ts.CompilerOptions): URI[] {
+        const { resolvedModule } = ts.resolveModuleName(includePath, containingFile.toString(), options, TypeScriptServices.snakeskinModuleResolutionHost);
         let { resolvedFileName } = resolvedModule ?? {};
 
         if (resolvedFileName == null) return [];
@@ -78,9 +78,9 @@ export class TypeScriptServices {
         resolvedFileName = resolvedFileName.replace('.ss.ts', '.ss');
 
         if (resolvedFileName.includes('*')) {
-            return globSync(resolvedFileName);
+            return globSync(resolvedFileName).map(path => URI.parse(path));
         }
-        return [resolvedFileName];
+        return [URI.parse(resolvedFileName)];
     }
 
     /**
@@ -89,16 +89,15 @@ export class TypeScriptServices {
      * It reuses the resolution algorithm of TypeScript instead of reimplementing the exact logic of the 'b' filter.
      *
      * @param includePath The path specified in the include directive
-     * @param containingFileUri The path of the file in which the include directive is used
+     * @param containingFile The URI of the file in which the include directive is used
      * @returns The resolved absolute path(s). Can be an array due to possibility of globs.
      */
-    resolveSnakeskinInclude(includePath: string, containingFileUri: URI): string[] {
+    resolveSnakeskinInclude(includePath: string, containingFile: URI): URI[] {
         // Ignore the 'as' part (not relevant for path resolution)
         includePath = includePath.split(':')[0];
-        const containingFilePath = containingFileUri.path;
 
         const options = Object.entries(this.options).find(([workspace, ]) => {
-            return containingFileUri.toString().startsWith(workspace);
+            return containingFile.toString().startsWith(workspace);
         })?.[1];
 
         if (options == null) {
@@ -107,19 +106,19 @@ export class TypeScriptServices {
 
         if (includePath.endsWith('.ss')) {
             // Importing a specific file directly
-            return this.resolveSnakeskinIncludeHelper(includePath, containingFilePath, options);
+            return this.resolveSnakeskinIncludeHelper(includePath, containingFile, options);
         } else {
             // Importing a directory
             // 1- Try appending the final dirname with .ss extension
-            const attempt1 = this.resolveSnakeskinIncludeHelper(`${includePath}/${path.basename(includePath)}.ss`, containingFilePath, options);
+            const attempt1 = this.resolveSnakeskinIncludeHelper(`${includePath}/${path.basename(includePath)}.ss`, containingFile, options);
             if (attempt1.length > 0) { return attempt1; }
 
             // 2- Try appending "main.ss"
-            const attempt2 = this.resolveSnakeskinIncludeHelper(`${includePath}/main.ss`, containingFilePath, options);
+            const attempt2 = this.resolveSnakeskinIncludeHelper(`${includePath}/main.ss`, containingFile, options);
             if (attempt2.length > 0) { return attempt2; }
 
             // 3- Try appending "index.ss"
-            const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFilePath, options);
+            const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFile, options);
             return attempt3;
         }
     }

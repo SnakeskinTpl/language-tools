@@ -1,4 +1,4 @@
-import { AstUtils, LeafCstNode, MaybePromise, UriUtils } from "langium";
+import { AstUtils, LeafCstNode, MaybePromise } from "langium";
 import { DefaultDefinitionProvider } from "langium/lsp";
 import { SnakeskinServices } from "./snakeskin-module";
 import { DefinitionParams, LocationLink, Range } from 'vscode-languageserver';
@@ -19,10 +19,8 @@ export class SnakeskinDefinitionProvider extends DefaultDefinitionProvider {
             const doc = AstUtils.getDocument(node);
             const importTargets = this.ts.resolveSnakeskinInclude(node.path, doc.uri);
 
-            return importTargets.map(target => LocationLink.create(
-                // The import target is converted to URI (even though it is already an absolute path) to match the format used
-                // by the indexManager, which is the string version of a URI (the main difference is that it includes the protocol)
-                UriUtils.resolvePath(doc.uri, target).toString(),
+            return importTargets.map(uri => LocationLink.create(
+                uri.toString(),
                 Range.create(0, 0, 0, 0),
                 Range.create(0, 0, 0, 0),
                 sourceCstNode.range,
