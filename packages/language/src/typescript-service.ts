@@ -189,4 +189,27 @@ export class TypeScriptServices {
             version: file?.version != null ? (file.version + 1) : 0,
         });
     }
+
+    /**
+     * Computes the content of the hover popup on a const directive
+     *
+     * @param fileName The file in which the user is currently hovering on a "const"
+     * @param ssOffset The text offset inside that file
+     * @returns The content of the hover popup
+     */
+    getConstHoverInfo(fileName: string, ssOffset: number): string | undefined {
+        fileName = TypeScriptServices.snakeskinUriToTsPath(fileName);
+        const file = this.files.get(fileName);
+        if (file == null) {
+            return;
+        }
+
+        const tsOffset = mapSourceOffsetToGenerated(ssOffset, file.trace)?.offset;
+        if (tsOffset == undefined) {
+            return;
+        }
+
+        const info = this.languageService.getQuickInfoAtPosition(fileName, tsOffset);
+        return "```ts\n" + ts.displayPartsToString(info?.displayParts) + "\n```";
+    }
 }
