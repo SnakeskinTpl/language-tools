@@ -2,30 +2,43 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { globSync } from "glob";
-import { URI } from "langium";
+import { URI, DocumentState, type LangiumDocument } from "langium";
+import type { TraceRegion } from "langium/generate";
 import type { SnakeskinServices } from "./snakeskin-module";
+import { generateTypeScript, mapSourceOffsetToGenerated } from "./generator";
+import type { Module } from "./generated/ast";
+
+/**
+ * A TypeScript file generated from Snakeskin code just for IntelliSense purposes
+ */
+export interface SnakeskinTypeScriptFile {
+    /** The content of the original Snakeskin file */
+    originalContent: string;
+    /** The generated TypeScript code for the Snakeskin file */
+    generatedContent: string;
+    /** Mapping between source location and generated locations */
+    trace: TraceRegion;
+    snapshot: ts.IScriptSnapshot;
+    version: number;
+}
 
 export class TypeScriptServices {
     protected readonly languageService: ts.LanguageService;
     /** A mapping from workspace root URI path to compiler options */
     protected readonly options: Record<string, ts.CompilerOptions> = {};
 
+    /**
+     * Mapping from SS file URI to its equivalent TS snapshot and version number.
+     * A value of null means the file is
+     */
+    protected files: Map<string, SnakeskinTypeScriptFile | null> = new Map();
+
     constructor(services: SnakeskinServices) {
         const host: ts.LanguageServiceHost = {
             getCompilationSettings: () => this.getCompilerOptions(ts.sys.getCurrentDirectory()),
-            getScriptFileNames: () => {
-                // TODO
-                return [];
-            },
-            getScriptVersion: (fileName: string) => {
-                // TODO
-                return '0';
-            },
-            getScriptSnapshot: (fileName: string) => {
-                // TODO: check if this implementation is correct
-                if (!ts.sys.fileExists(fileName)) { return; }
-                return ts.ScriptSnapshot.fromString(fs.readFileSync(fileName, { encoding: 'utf-8' }));
-            },
+            getScriptFileNames: () =>  [...this.files.keys()],
+            getScriptVersion: (fileName: string) => this.files.get(fileName)?.version?.toString() ?? '',
+            getScriptSnapshot: (fileName: string) => this.files.get(fileName)?.snapshot,
             getCurrentDirectory: ts.sys.getCurrentDirectory,
             getDefaultLibFileName: ts.getDefaultLibFilePath,
             fileExists: ts.sys.fileExists,
@@ -40,6 +53,28 @@ export class TypeScriptServices {
             services.shared.workspace.WorkspaceManager.workspaceFolders.forEach(folder => {
                 this.options[folder.uri] = this.getCompilerOptions(URI.parse(folder.uri).path);
             });
+        });
+
+        // Register open files to watch their phases
+        services.shared.workspace.TextDocuments.onDidOpen(({ document }) => {
+            const path = TypeScriptServices.snakeskinUriToTsPath(document.uri);
+            if (!this.files.has(path)) {
+                this.files.set(path, null);
+            }
+        });
+
+        // Clean up when closing to avoid memory leaks
+        services.shared.workspace.TextDocuments.onDidClose(({ document }) => {
+            const path = TypeScriptServices.snakeskinUriToTsPath(document.uri);
+            this.files.delete(path);
+        });
+
+        // Convert watched (open) Snakeskin files to TypeScript once they are parsed and ready
+        services.shared.workspace.DocumentBuilder.onDocumentPhase(DocumentState.IndexedReferences, (doc) => {
+            const path = TypeScriptServices.snakeskinUriToTsPath(doc.uri);
+            if (this.files.has(path)) {
+                this.addSnakeskinFile(doc as LangiumDocument<Module>);
+            }
         });
     };
 
@@ -121,5 +156,37 @@ export class TypeScriptServices {
             const attempt3 = this.resolveSnakeskinIncludeHelper(`${includePath}/index.ss`, containingFile, options);
             return attempt3;
         }
+    }
+
+    private static snakeskinUriToTsPath(uri: URI | string): string {
+        if (typeof uri === 'string') {
+            uri = URI.parse(uri);
+        }
+        return uri.fsPath + ".ts";
+    }
+
+    /**
+     * Adds (or updates) a Snakeskin file to the list of files watched by the TypeScript language service.
+     */
+    protected addSnakeskinFile(document: LangiumDocument<Module>): void {
+        const fileTsPath = TypeScriptServices.snakeskinUriToTsPath(document.uri);
+        const module = document.parseResult.value;
+
+        const generated = generateTypeScript(module);
+        if (generated == undefined) {
+            return;
+        }
+
+        const { text, trace } = generated;
+
+        const file = this.files.get(fileTsPath);
+
+        this.files.set(fileTsPath, {
+            originalContent: document.textDocument.getText(),
+            generatedContent: text,
+            trace,
+            snapshot: ts.ScriptSnapshot.fromString(text),
+            version: file?.version != null ? (file.version + 1) : 0,
+        });
     }
 }
