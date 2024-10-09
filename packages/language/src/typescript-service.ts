@@ -105,7 +105,7 @@ export class TypeScriptServices {
      * Internal helper for {@link resolveSnakeskinInclude} to minmize repetition.
      */
     private resolveSnakeskinIncludeHelper(includePath: string, containingFile: URI, options: ts.CompilerOptions): URI[] {
-        const { resolvedModule } = ts.resolveModuleName(includePath, containingFile.toString(), options, TypeScriptServices.snakeskinModuleResolutionHost);
+        const { resolvedModule } = ts.resolveModuleName(includePath, containingFile.fsPath, options, TypeScriptServices.snakeskinModuleResolutionHost);
         let { resolvedFileName } = resolvedModule ?? {};
 
         if (resolvedFileName == null) return [];
