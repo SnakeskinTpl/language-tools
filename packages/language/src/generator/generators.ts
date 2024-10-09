@@ -7,7 +7,7 @@
 
 import { traceToNode, expandTracedToNode, joinTracedToNode, toStringAndTrace, expandToNode, NL, joinToNode, expandTracedToNodeIf } from 'langium/generate';
 import { type Generated, type TraceRegion } from 'langium/generate';
-import { type Directive, type Const, type Parameter, type Template, type Module, type Block, type ReferencePath, isBlock, isConst } from "../generated/ast";
+import { type Directive, type Const, type Parameter, type Template, type Module, type Block, type Import, type Include, type ReferencePath, isBlock, isConst } from "../generated/ast";
 
 type GenerationContext = {
   insideTemplate: boolean;
@@ -55,6 +55,8 @@ export const directiveGenerators: Partial<DirectiveGenerators> = {
   Template: generateTemplate,
   Const: generateConst,
   Block: generateBlock,
+  Import: generateImport,
+  Include: generateInclude,
 };
 
 function generateDirective(directive: Directive, ctx: GenerationContext): Generated {
@@ -158,8 +160,34 @@ function generateBlock(block: Block, ctx: GenerationContext): Generated {
       .appendNewLine();
 }
 
+function generateImport(importNode: Import): Generated {
+  const name = traceToNode(importNode, 'name')(importNode.name);
+  const path = traceToNode(importNode, 'path')(importNode.path);
+
+  return expandTracedToNode(importNode)
+    `import ${name} from "${path}";`.appendNewLine();
+}
+
 const normalizeId = (id: string): string => id.replace(/[^\w]/g, '_');
 
+function generateInclude(include: Include): Generated {
+  if (include.renderAs !== 'placeholder') {
+    // Don't care about non-named imports for now (I think)
+    return;
+  }
+
+  // For now, I (unjustifiably) assume that all imported files have "- namespace [%fileName%]"
+  // This makes it easier to map it to a "namespace import".
+
+  const namespace = normalizeId(include.path.replace('/index.ss', '').split('/').pop()!);
+
+  const name = traceToNode(include, 'renderAs')(namespace);
+  // TODO: resolve the absolute path to the ".ss.ts" virtual file
+  const path = traceToNode(include, 'path')(include.path);
+
+  return expandTracedToNode(include)
+    `import * as ${name} from "${path}";`.appendNewLine();
+}
 
 function generateReferencePath(path: ReferencePath): Generated {
   const name = normalizeId(path.name);
