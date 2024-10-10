@@ -2,14 +2,22 @@ import path from 'node:path';
 import type { Hover, HoverParams } from 'vscode-languageserver';
 import { AstNode, LangiumDocument, MaybePromise, CstUtils, AstUtils, GrammarUtils } from 'langium';
 import { AstNodeHoverProvider } from 'langium/lsp';
-import { isAttribute, isReferencePath, isTag } from './generated/ast.js';
+import { isAttribute, isConst, isReferencePath, isTag, Module } from './generated/ast.js';
 import { getDefaultHTMLDataProvider } from 'vscode-html-languageservice/lib/esm/htmlLanguageService.js';
 // @ts-expect-error - this function is not exported in the types, for some reason
 import { generateDocumentation } from 'vscode-html-languageservice/lib/esm/languageFacts/dataProvider.js';
 import { loadTemplateData } from '@vue/language-service/lib/plugins/data.js';
+import type { SnakeskinServices } from './snakeskin-module.js';
+import type { TypeScriptServices } from './typescript-service.js';
 
 export class HoverProvider extends AstNodeHoverProvider {
-    protected vueData = loadTemplateData('en')
+    protected vueData = loadTemplateData('en');
+    protected ts: TypeScriptServices;
+
+    constructor(services: SnakeskinServices) {
+        super(services);
+        this.ts = services.TypeScript;
+    };
 
     // by default, it tries to find the declaration, which we do not resolve yet, so we override the wrapper function
     override getHoverContent(document: LangiumDocument<AstNode>, params: HoverParams): MaybePromise<Hover | undefined> {
@@ -82,6 +90,20 @@ export class HoverProvider extends AstNodeHoverProvider {
                 return {contents: path.basename(uri, '.ss'), range};
             } else if (node.name === '%dirName%') {
                 return {contents: path.basename(path.dirname(uri)), range};
+            }
+        } else if (isConst(node)) {
+            const module = AstUtils.findRootNode(node) as Module;
+            const langiumDoc = AstUtils.getDocument<Module>(module);
+            const { uri } = langiumDoc.textDocument;
+            const nameNode = GrammarUtils.findNodeForProperty(node.$cstNode, 'name');
+
+            if (nameNode == undefined) {
+                return;
+            }
+
+            const info = this.ts.getConstHoverInfo(uri, nameNode.offset);
+            if (info) {
+                return { contents: info, range };
             }
         }
         return undefined;
