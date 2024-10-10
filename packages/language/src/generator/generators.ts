@@ -188,7 +188,7 @@ function generateInclude(include: Include): Generated {
   // For now, I (unjustifiably) assume that all imported files have "- namespace [%fileName%]"
   // This makes it easier to map it to a "namespace import".
 
-  const namespace = normalizeId(include.path.replace('/index.ss', '').split('/').pop()!);
+  const namespace = normalizeId(include.path.replace('/index.ss', '').replace('.ss', '').split('/').pop()!);
 
   const name = traceToNode(include, 'renderAs')(namespace);
   // TODO: resolve the absolute path to the ".ss.ts" virtual file
