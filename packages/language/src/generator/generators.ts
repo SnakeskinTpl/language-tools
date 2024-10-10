@@ -74,7 +74,7 @@ function generateDirective(directive: Directive, ctx: GenerationContext): Genera
 }
 
 function generateTemplate(template: Template, ctx: GenerationContext): Generated {
-  const params = joinTracedToNode(template, 'params')(template.params, generateParam, { separator: ', ' });
+  const params = joinTracedToNode(template, 'params')(template.params, generateParam, { separator: ', ' })!;
 
   let superClass: Generated;
   if (template.extends) {
@@ -90,9 +90,9 @@ function generateTemplate(template: Template, ctx: GenerationContext): Generated
   const constructorBody = joinTracedToNode(template, 'body')(otherDirectives, (dir) => generateDirective(dir, ctx))!;
 
 
-  if (!constructorBody.isEmpty()) {
+  if (!constructorBody.isEmpty() || !params.isEmpty()) {
     const classConstructor = expandToNode`
-      constructor() {`.appendNewLine()
+      constructor(${params}) {`.appendNewLine()
         .indent(['const self = this;', NL, constructorBody])
         .append('}')
         .appendNewLine();
@@ -118,7 +118,7 @@ function generateTemplate(template: Template, ctx: GenerationContext): Generated
   ctx.externalBlocks[template.name] = [];
 
   return expandTracedToNode(template)
-    `export class ${traceToNode(template, 'name')(template.name)}(${params}) ${superClass != undefined ? 'extends ' : ''}${superClass} {`.appendNewLine()
+    `export class ${traceToNode(template, 'name')(template.name)} ${superClass != undefined ? 'extends ' : ''}${superClass} {`.appendNewLine()
       .indent([classBody])
       .append('}')
       .appendNewLine();
