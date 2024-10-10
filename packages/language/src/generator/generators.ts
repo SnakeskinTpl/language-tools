@@ -7,7 +7,8 @@
 
 import { traceToNode, expandTracedToNode, joinTracedToNode, toStringAndTrace, expandToNode, NL, joinToNode, expandTracedToNodeIf } from 'langium/generate';
 import { type Generated, type TraceRegion } from 'langium/generate';
-import { type Directive, type Const, type Parameter, type Template, type Module, type Block, type Import, type Include, type ReferencePath, isBlock, isConst } from "../generated/ast";
+import type { Directive, Const, Parameter, Template, Module, Block, Import, Include, ReferencePath, Void, Tag, Call, If, ElseIf, Else, Unless, ElseUnless } from "../generated/ast";
+import { isBlock, isConst } from "../generated/ast";
 
 type GenerationContext = {
   insideTemplate: boolean;
@@ -57,6 +58,14 @@ export const directiveGenerators: Partial<DirectiveGenerators> = {
   Block: generateBlock,
   Import: generateImport,
   Include: generateInclude,
+  Call: generateCall,
+  Void: generateVoid,
+  Tag: generateTag,
+  If: generateIf,
+  ElseIf: generateElseIf,
+  Else: generateElse,
+  Unless: generateUnless,
+  ElseUnless: generateElseUnless,
 };
 
 function generateDirective(directive: Directive, ctx: GenerationContext): Generated {
@@ -200,4 +209,72 @@ function generateReferencePath(path: ReferencePath): Generated {
       .appendTraced(path, 'next')(next);
   }
   return generated;
+}
+
+function generateCall(call: Call, ctx: GenerationContext): Generated {
+  const body = joinTracedToNode(call, 'body')(call.body, (dir) => generateDirective(dir, ctx))
+  return expandTracedToNode(call, 'value')`${call.value};`
+    .appendNewLine()
+    .appendTracedIf(!body?.isEmpty(), call, 'body')(body)
+    .appendNewLineIfNotEmpty();
+}
+
+function generateVoid(voidNode: Void): Generated {
+  return expandTracedToNode(voidNode, 'content')`void ${voidNode.content}`.appendNewLine();
+}
+
+function generateTag(tag: Tag, ctx: GenerationContext): Generated {
+  // TODO: implement actual generation for tags
+
+  // For now, just skip to the body
+  return joinTracedToNode(tag, 'body')(tag.body, (dir) => generateDirective(dir, ctx));
+}
+
+function generateIf(ifNode: If, ctx: GenerationContext) {
+  const condition = expandTracedToNode(ifNode, 'condition')`${ifNode.condition}`;
+  const body = joinTracedToNode(ifNode, 'body')(ifNode.body, (dir) => generateDirective(dir, ctx));
+
+  return expandTracedToNode(ifNode)`if (${condition}) {`.appendNewLine()
+    .indent([body])
+    .append('}')
+    .appendNewLine();
+}
+
+function generateElseIf(elseIf: ElseIf, ctx: GenerationContext) {
+  const condition = expandTracedToNode(elseIf, 'condition')`${elseIf.condition}`;
+  const body = joinTracedToNode(elseIf, 'body')(elseIf.body, (dir) => generateDirective(dir, ctx));
+
+  return expandTracedToNode(elseIf)`else if (${condition}) {`.appendNewLine()
+    .indent([body])
+    .append('}')
+    .appendNewLine();
+}
+
+function generateElse(elseNode: Else, ctx: GenerationContext) {
+  const body = joinTracedToNode(elseNode, 'body')(elseNode.body, (dir) => generateDirective(dir, ctx));
+
+  return expandTracedToNode(elseNode)`else {`.appendNewLine()
+    .indent([body])
+    .append('}')
+    .appendNewLine();
+}
+
+function generateUnless(unless: Unless, ctx: GenerationContext) {
+  const condition = expandTracedToNode(unless, 'condition')`${unless.condition}`;
+  const body = joinTracedToNode(unless, 'body')(unless.body, (dir) => generateDirective(dir, ctx));
+
+  return expandTracedToNode(unless)`if (!(${condition})) {`.appendNewLine()
+    .indent([body])
+    .append('}')
+    .appendNewLine();
+}
+
+function generateElseUnless(elseUnless: ElseUnless, ctx: GenerationContext) {
+  const condition = expandTracedToNode(elseUnless, 'condition')`${elseUnless.condition}`;
+  const body = joinTracedToNode(elseUnless, 'body')(elseUnless.body, (dir) => generateDirective(dir, ctx));
+
+  return expandTracedToNode(elseUnless)`else if (!(${condition})) {`.appendNewLine()
+    .indent([body])
+    .append('}')
+    .appendNewLine();
 }
