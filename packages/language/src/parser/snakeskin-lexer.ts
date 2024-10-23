@@ -208,7 +208,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				return [text.substring(offset, i)];
 			}
 			tokenType.LINE_BREAKS = true;
-		} else if (tokenType.name === 'PARAM_DEFAULT_VALUE') {
+		} else if (tokenType.name === 'JS_EXPR') {
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				if (tokens.length < 3) return null;
 				const [{tokenType: {name: parenOrComma}}, {tokenType: {name: id}}, {tokenType: {name: eq}}] = tokens.slice(-3);
