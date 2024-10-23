@@ -111,12 +111,16 @@ Parameter:
     // TODO: any JS expression
 ;
 
-Template:
-    '-' async?=ASYNC? 'template'
-    name=ID
+fragment Parameters:
     L_PAREN
         (params+=Parameter (COMMA params+=Parameter)*)?
     R_PAREN
+;
+
+Template:
+    '-' async?=ASYNC? 'template'
+    name=ID
+    Parameters
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body?
 ;
@@ -129,9 +133,7 @@ Template:
 Placeholder:
     '-' 'placeholder'
     name=ID
-    L_PAREN
-        (params+=Parameter (COMMA params+=Parameter)*)?
-    R_PAREN
+    Parameters
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body
 ;
@@ -140,9 +142,7 @@ Block:
     '-' 'block'
     (container=[Template] '->')?
     name=ID
-    (L_PAREN
-        (params+=Parameter (COMMA params+=Parameter)*)?
-    R_PAREN)?
+    Parameters?
     Body?
 ;
 

@@ -44,7 +44,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 
 		const { currIndentLevel, prevIndentLevel, match } = this.matchWhitespace(text, offset, tokens, groups);
 
-		if (currIndentLevel >= prevIndentLevel || match == null) {
+		if (currIndentLevel >= prevIndentLevel) {
 				// bigger indentation (should be matched by indent)
 				// or same indentation level (should be matched by whitespace and ignored)
 				return null;
