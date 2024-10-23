@@ -220,7 +220,7 @@ function generateCall(call: Call, ctx: GenerationContext): Generated {
 }
 
 function generateVoid(voidNode: Void): Generated {
-  return expandTracedToNode(voidNode, 'content')`void ${voidNode.content}`.appendNewLine();
+  return expandTracedToNode(voidNode, 'content')`void (${voidNode.content})`.appendNewLine();
 }
 
 function generateTag(tag: Tag, ctx: GenerationContext): Generated {
