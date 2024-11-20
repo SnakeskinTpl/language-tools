@@ -24,7 +24,7 @@ export class SnakeskinValidator {
     private ts: TypeScriptServices;
 
     constructor(services: SnakeskinServices) {
-        this.ts = services.TypeScript;
+        this.ts = services.TypeScript.ts;
     }
 
     /**
@@ -33,7 +33,7 @@ export class SnakeskinValidator {
      */
     validateAttributesMissingBar(attr: Attribute, accept: ValidationAcceptor): void {
         if (attr.$cstNode == null) return;
-        const {range: {start, end}, text} = attr.$cstNode;
+        const { range: { start, end }, text } = attr.$cstNode;
         if (start.line === end.line) {
             // single-line attribute
             return;
@@ -50,7 +50,7 @@ export class SnakeskinValidator {
         });
         // When only the value is multi-line, there are usually no other attributes after it anyway
         const isValueMultiline = lines[0]?.endsWith(' &') ?? false;
-        const isLastInMultiline =  lineWithMatchingIndent === lines.length - 1 - 1 && lines.length > 2;
+        const isLastInMultiline = lineWithMatchingIndent === lines.length - 1 - 1 && lines.length > 2;
 
         if (lineWithMatchingIndent !== -1 && !isLastInMultiline && !isValueMultiline) {
             const line = start.line + lineWithMatchingIndent;
@@ -62,8 +62,8 @@ export class SnakeskinValidator {
                 {
                     node: attr,
                     range: {
-                        start: {line, character: startChar},
-                        end: {line: line + 1, character: endChar}
+                        start: { line, character: startChar },
+                        end: { line: line + 1, character: endChar }
                     },
                 }
             );

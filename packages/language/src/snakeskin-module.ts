@@ -9,6 +9,7 @@ import { TypeScriptServices } from './typescript-service.js';
 import { SnakeskinDefinitionProvider } from './definition-provider.js';
 import { SnakeskinWorkspaceManager } from './workspace-manager.js';
 import { SnakeskinFoldingRangeProvider } from './folding-ranges.js';
+import { TypeScriptGenerationService } from './generator/generators.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -17,7 +18,10 @@ export type SnakeskinAddedServices = {
     validation: {
         SnakeskinValidator: SnakeskinValidator
     },
-    TypeScript: TypeScriptServices,
+    TypeScript: {
+        ts: TypeScriptServices;
+        generator: TypeScriptGenerationService;
+    };
 }
 
 export type SnakeskinSharedServices = {
@@ -51,7 +55,10 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
         DefinitionProvider: (services) => new SnakeskinDefinitionProvider(services),
         FoldingRangeProvider: (services) => new SnakeskinFoldingRangeProvider(services),
     },
-    TypeScript: (services) => new TypeScriptServices(services),
+    TypeScript: {
+        ts: (services) => new TypeScriptServices(services),
+        generator: (services) => new TypeScriptGenerationService(services),
+    },
 };
 
 export const SnakeskinSharedModule: Module<LangiumSharedServices, SnakeskinSharedServices> = {

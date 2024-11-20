@@ -9,7 +9,9 @@ import { traceToNode, expandTracedToNode, joinTracedToNode, toStringAndTrace, ex
 import { type Generated, type TraceRegion } from 'langium/generate';
 import type { Directive, Const, Parameter, Template, Module, Block, Import, Include, ReferencePath, Void, Tag, Call, If, ElseIf, Else, Unless, ElseUnless } from "../generated/ast";
 import { isBlock, isConst } from "../generated/ast";
+import { SnakeskinServices } from '../snakeskin-module';
 
+// TODO: move the context inside the class
 type GenerationContext = {
   insideTemplate: boolean;
   insideBlock: boolean;
@@ -35,246 +37,240 @@ function getDefaultContext(): GenerationContext {
   };
 }
 
-/**
- * Generates TypeScript code (with a source map) for a given Snakeskin module.
- */
-export function generateTypeScript(module: Module): { text:string, trace: TraceRegion } | undefined {
-  const ctx = getDefaultContext();
-  const directives = joinTracedToNode(module, 'directives')(module.directives, (dir) => generateDirective(dir, ctx));
-  if (directives == undefined) {
-    return undefined;
-  }
-
-  return toStringAndTrace(directives);
-}
-
-export type DirectiveGenerators = {
-  [D in Directive as D["$type"]]: (directive: D, ctx: GenerationContext) => Generated;
+type DirectiveGenerators = {
+  [D in Directive as `generate${D["$type"]}`]: undefined | ((directive: D, ctx: GenerationContext) => Generated);
 };
 
-export const directiveGenerators: Partial<DirectiveGenerators> = {
-  Template: generateTemplate,
-  Const: generateConst,
-  Block: generateBlock,
-  Import: generateImport,
-  Include: generateInclude,
-  Call: generateCall,
-  Void: generateVoid,
-  Tag: generateTag,
-  If: generateIf,
-  ElseIf: generateElseIf,
-  Else: generateElse,
-  Unless: generateUnless,
-  ElseUnless: generateElseUnless,
-};
+export class TypeScriptGenerationService implements Partial<DirectiveGenerators> {
+  constructor(readonly services: SnakeskinServices) { }
 
-function generateDirective(directive: Directive, ctx: GenerationContext): Generated {
-  // The casting is required because TypeScript is not smart enough
-  return directiveGenerators[directive.$type]?.(directive as never, ctx);
-}
+  /**
+   * Generates TypeScript code (with a source map) for a given Snakeskin module.
+   */
+  generateTypeScript(module: Module): { text: string, trace: TraceRegion } | undefined {
+    const ctx = getDefaultContext();
+    const directives = joinTracedToNode(module, 'directives')(module.directives, (dir) => this.generateDirective(dir, ctx));
+    if (directives == undefined) {
+      return undefined;
+    }
 
-function generateTemplate(template: Template, ctx: GenerationContext): Generated {
-  const params = joinTracedToNode(template, 'params')(template.params, generateParam, { separator: ', ' })!;
-
-  let superClass: Generated;
-  if (template.extends) {
-    superClass = generateReferencePath(template.extends);
+    return toStringAndTrace(directives);
   }
 
-  ctx = { ...ctx, insideTemplate: true };
-  const isValidClassField = (dir: Directive) => [isBlock, isConst].some(f => f(dir));
-  const classFieldDirectives = template.body.filter(dir => isValidClassField(dir));
-  const otherDirectives = template.body.filter(dir => !isValidClassField(dir));
+  generateDirective = (directive: Directive, ctx: GenerationContext): Generated => {
+    // TODO: get nearest JSDoc (if any)
+    // @ts-expect-error - Not all functions are implemented yet
+    return this[`generate${directive.$type}`]?.(directive as never, ctx);
+  }
 
-  const classBody = joinTracedToNode(template, 'body')(classFieldDirectives, (dir) => generateDirective(dir, ctx))!;
-  const constructorBody = joinTracedToNode(template, 'body')(otherDirectives, (dir) => generateDirective(dir, ctx))!;
+  generateTemplate = (template: Template, ctx: GenerationContext): Generated => {
+    const params = joinTracedToNode(template, 'params')(template.params, this.generateParam, { separator: ', ' })!;
+
+    let superClass: Generated;
+    if (template.extends) {
+      superClass = this.generateReferencePath(template.extends);
+    }
+
+    ctx = { ...ctx, insideTemplate: true };
+    const isValidClassField = (dir: Directive) => [isBlock, isConst].some(f => f(dir));
+    const classFieldDirectives = template.body.filter(dir => isValidClassField(dir));
+    const otherDirectives = template.body.filter(dir => !isValidClassField(dir));
+
+    const classBody = joinTracedToNode(template, 'body')(classFieldDirectives, (dir) => this.generateDirective(dir, ctx))!;
+    const constructorBody = joinTracedToNode(template, 'body')(otherDirectives, (dir) => this.generateDirective(dir, ctx))!;
 
 
-  if (!constructorBody.isEmpty() || !params.isEmpty()) {
-    const classConstructor = expandToNode`
-      constructor(${params}) {`.appendNewLine()
+    if (!constructorBody.isEmpty() || !params.isEmpty()) {
+      const classConstructor = expandToNode`
+        constructor(${params}) {`.appendNewLine()
         .indent(['const self = this;', NL, constructorBody])
         .append('}')
         .appendNewLine();
 
-    classBody.contents.unshift(classConstructor);
-  }
+      classBody.contents.unshift(classConstructor);
+    }
 
-  // Add external blocks (if any)
-  const external = ctx.externalBlocks[template.name] ?? [];
-  classBody.appendIf(
-    external.length > 0,
-    joinToNode(external, block => generateBlock(block, ctx))
-  );
+    // Add external blocks (if any)
+    const external = ctx.externalBlocks[template.name] ?? [];
+    classBody.appendIf(
+      external.length > 0,
+      joinToNode(external, block => this.generateBlock(block, ctx))
+    );
 
-  // Flatten nested blocks (if any)
-  classBody.appendIf(
-    ctx.nestedBlocks.length > 0,
-    joinToNode(ctx.nestedBlocks, block => generateBlock(block, ctx))
-  );
+    // Flatten nested blocks (if any)
+    classBody.appendIf(
+      ctx.nestedBlocks.length > 0,
+      joinToNode(ctx.nestedBlocks, block => this.generateBlock(block, ctx))
+    );
 
-  // Reset the modified context
-  ctx.nestedBlocks = [];
-  ctx.externalBlocks[template.name] = [];
+    // Reset the modified context
+    ctx.nestedBlocks = [];
+    ctx.externalBlocks[template.name] = [];
 
-  return expandTracedToNode(template)
-    `export class ${traceToNode(template, 'name')(template.name)} ${superClass != undefined ? 'extends ' : ''}${superClass} {`.appendNewLine()
+    return expandTracedToNode(template)
+      `export class ${traceToNode(template, 'name')(template.name)} ${superClass != undefined ? 'extends ' : ''}${superClass} {`.appendNewLine()
       .indent([classBody])
       .append('}')
       .appendNewLine();
-}
-
-function generateParam(param: Parameter): Generated {
-  const defaultValue = param.defaultValue ? traceToNode(param, 'defaultValue')(param.defaultValue) : '';
-  const separator = defaultValue ? ' = ' : '';
-
-  return expandTracedToNode(param)`${traceToNode(param, 'name')(param.name)}${separator}${defaultValue}`;
-}
-
-function generateConst(constNode: Const, ctx: GenerationContext): Generated {
-  const name = traceToNode(constNode, 'name')(constNode.name);
-  const initialValue = traceToNode(constNode, 'initialValue')(constNode.initialValue);
-  if (ctx.insideTemplate && !ctx.insideBlock) {
-    return expandTracedToNode(constNode)`readonly ${name} = ${initialValue};`.appendNewLine();
-  } else {
-    return expandTracedToNode(constNode)`const ${name} = ${initialValue};`.appendNewLine();
-  }
-}
-
-function generateBlock(block: Block, ctx: GenerationContext): Generated {
-  if (block.container && !ctx.insideTemplate) {
-    // Found an external block. Delegate its generation to when we find its template.
-    ctx.externalBlocks[block.container.$refText] ??= [];
-    ctx.externalBlocks[block.container.$refText].push(block);
-    return;
-  }
-  if (ctx.insideBlock) {
-    // Found a nested block. Delegate its generation to when we're back to the template root.
-    ctx.nestedBlocks.push(block);
-    return;
   }
 
-  const params = joinTracedToNode(block, 'params')(block.params, generateParam, { separator: ', ' })!;
-  ctx = { ...ctx, insideBlock: true };
-  const body = joinTracedToNode(block, 'body')(block.body, (dir) => generateDirective(dir, ctx))!;
+  generateParam = (param: Parameter): Generated => {
+    const defaultValue = param.defaultValue ? traceToNode(param, 'defaultValue')(param.defaultValue) : '';
+    const separator = defaultValue ? ' = ' : '';
 
-  const preamble = expandTracedToNodeIf(!body.isEmpty() && ctx.insideTemplate, block)`
-    const self = this;`?.appendNewLine();
+    return expandTracedToNode(param)`${traceToNode(param, 'name')(param.name)}${separator}${defaultValue}`;
+  }
 
-  return expandTracedToNode(block)
-    `${ctx.insideTemplate ? '' : 'function '}${traceToNode(block, 'name')(block.name)}(${params}) {`
+  generateConst = (constNode: Const, ctx: GenerationContext): Generated => {
+    const name = traceToNode(constNode, 'name')(constNode.name);
+    const initialValue = traceToNode(constNode, 'initialValue')(constNode.initialValue);
+    if (ctx.insideTemplate && !ctx.insideBlock) {
+      return expandTracedToNode(constNode)`readonly ${name} = ${initialValue};`.appendNewLine();
+    } else {
+      return expandTracedToNode(constNode)`const ${name} = ${initialValue};`.appendNewLine();
+    }
+  }
+
+  generateBlock = (block: Block, ctx: GenerationContext): Generated => {
+    if (block.container && !ctx.insideTemplate) {
+      // Found an external block. Delegate its generation to when we find its template.
+      ctx.externalBlocks[block.container.$refText] ??= [];
+      ctx.externalBlocks[block.container.$refText].push(block);
+      return;
+    }
+    if (ctx.insideBlock) {
+      // Found a nested block. Delegate its generation to when we're back to the template root.
+      ctx.nestedBlocks.push(block);
+      return;
+    }
+
+    const params = joinTracedToNode(block, 'params')(block.params, this.generateParam, { separator: ', ' })!;
+    ctx = { ...ctx, insideBlock: true };
+    const body = joinTracedToNode(block, 'body')(block.body, (dir) => this.generateDirective(dir, ctx))!;
+
+    const preamble = expandTracedToNodeIf(!body.isEmpty() && ctx.insideTemplate, block)`
+      const self = this;`?.appendNewLine();
+
+    return expandTracedToNode(block)
+      `${ctx.insideTemplate ? '' : 'function '}${traceToNode(block, 'name')(block.name)}(${params}) {`
       .appendNewLine()
       .indent([preamble, body])
       .append('}')
       .appendNewLine();
-}
-
-function generateImport(importNode: Import): Generated {
-  const name = traceToNode(importNode, 'name')(importNode.name);
-  const path = traceToNode(importNode, 'path')(importNode.path);
-
-  return expandTracedToNode(importNode)
-    `import ${name} from "${path}";`.appendNewLine();
-}
-
-const normalizeId = (id: string): string => id.replace(/[^\w]/g, '_');
-
-function generateInclude(include: Include): Generated {
-  if (include.renderAs !== 'placeholder') {
-    // Don't care about non-named imports for now (I think)
-    return;
   }
 
-  // For now, I (unjustifiably) assume that all imported files have "- namespace [%fileName%]"
-  // This makes it easier to map it to a "namespace import".
+  generateImport = (importNode: Import): Generated => {
+    const name = traceToNode(importNode, 'name')(importNode.name);
+    const path = traceToNode(importNode, 'path')(importNode.path);
 
-  const namespace = normalizeId(include.path.replace('/index.ss', '').replace('.ss', '').split('/').pop()!);
-
-  const name = traceToNode(include, 'renderAs')(namespace);
-  // TODO: resolve the absolute path to the ".ss.ts" virtual file
-  const path = traceToNode(include, 'path')(include.path);
-
-  return expandTracedToNode(include)
-    `import * as ${name} from "${path}";`.appendNewLine();
-}
-
-function generateReferencePath(path: ReferencePath): Generated {
-  const name = normalizeId(path.name);
-
-  const generated = expandTracedToNode(path)`${name}`;
-  if (path.next) {
-    const next = generateReferencePath(path.next);
-    generated
-      .append('.')
-      .appendTraced(path, 'next')(next);
+    return expandTracedToNode(importNode)
+      `import ${name} from "${path}";`.appendNewLine();
   }
-  return generated;
-}
 
-function generateCall(call: Call, ctx: GenerationContext): Generated {
-  const body = joinTracedToNode(call, 'body')(call.body, (dir) => generateDirective(dir, ctx))
-  return expandTracedToNode(call, 'value')`${call.value};`
-    .appendNewLine()
-    .appendTracedIf(!body?.isEmpty(), call, 'body')(body)
-    .appendNewLineIfNotEmpty();
-}
+  protected normalizeId(id: string): string {
+    return id.replace(/[^\w]/g, '_');
+  }
 
-function generateVoid(voidNode: Void): Generated {
-  return expandTracedToNode(voidNode, 'content')`void (${voidNode.content})`.appendNewLine();
-}
+  generateInclude = (include: Include): Generated => {
+    if (include.renderAs !== 'placeholder') {
+      // Don't care about non-named imports for now (I think)
+      return;
+    }
 
-function generateTag(tag: Tag, ctx: GenerationContext): Generated {
-  // TODO: implement actual generation for tags
+    // For now, I (unjustifiably) assume that all imported files have "- namespace [%fileName%]"
+    // This makes it easier to map it to a "namespace import".
 
-  // For now, just skip to the body
-  return joinTracedToNode(tag, 'body')(tag.body, (dir) => generateDirective(dir, ctx));
-}
+    const namespace = this.normalizeId(include.path.replace('/index.ss', '').replace('.ss', '').split('/').pop()!);
 
-function generateIf(ifNode: If, ctx: GenerationContext) {
-  const condition = expandTracedToNode(ifNode, 'condition')`${ifNode.condition}`;
-  const body = joinTracedToNode(ifNode, 'body')(ifNode.body, (dir) => generateDirective(dir, ctx));
+    const name = traceToNode(include, 'renderAs')(namespace);
+    // TODO: resolve the absolute path to the ".ss.ts" virtual file
+    const path = traceToNode(include, 'path')(include.path);
 
-  return expandTracedToNode(ifNode)`if (${condition}) {`.appendNewLine()
-    .indent([body])
-    .append('}')
-    .appendNewLine();
-}
+    return expandTracedToNode(include)
+      `import * as ${name} from "${path}";`.appendNewLine();
+  }
 
-function generateElseIf(elseIf: ElseIf, ctx: GenerationContext) {
-  const condition = expandTracedToNode(elseIf, 'condition')`${elseIf.condition}`;
-  const body = joinTracedToNode(elseIf, 'body')(elseIf.body, (dir) => generateDirective(dir, ctx));
+  generateReferencePath = (path: ReferencePath): Generated => {
+    const name = this.normalizeId(path.name);
 
-  return expandTracedToNode(elseIf)`else if (${condition}) {`.appendNewLine()
-    .indent([body])
-    .append('}')
-    .appendNewLine();
-}
+    const generated = expandTracedToNode(path)`${name}`;
+    if (path.next) {
+      const next = this.generateReferencePath(path.next);
+      generated
+        .append('.')
+        .appendTraced(path, 'next')(next);
+    }
+    return generated;
+  }
 
-function generateElse(elseNode: Else, ctx: GenerationContext) {
-  const body = joinTracedToNode(elseNode, 'body')(elseNode.body, (dir) => generateDirective(dir, ctx));
+  generateCall = (call: Call, ctx: GenerationContext): Generated => {
+    const body = joinTracedToNode(call, 'body')(call.body, (dir) => this.generateDirective(dir, ctx))
+    return expandTracedToNode(call, 'value')`${call.value};`
+      .appendNewLine()
+      .appendTracedIf(!body?.isEmpty(), call, 'body')(body)
+      .appendNewLineIfNotEmpty();
+  }
 
-  return expandTracedToNode(elseNode)`else {`.appendNewLine()
-    .indent([body])
-    .append('}')
-    .appendNewLine();
-}
+  generateVoid = (voidNode: Void): Generated => {
+    return expandTracedToNode(voidNode, 'content')`void (${voidNode.content})`.appendNewLine();
+  }
 
-function generateUnless(unless: Unless, ctx: GenerationContext) {
-  const condition = expandTracedToNode(unless, 'condition')`${unless.condition}`;
-  const body = joinTracedToNode(unless, 'body')(unless.body, (dir) => generateDirective(dir, ctx));
+  generateTag = (tag: Tag, ctx: GenerationContext): Generated => {
+    // TODO: implement actual generation for tags
+    // Check if it a built-in HTML component and use `document.createElement`
+    // If it is Vue, idk what to do. Maybe JSX?
+    // If neither, find it in imports and use `new Component()`, followed by setting attributes manually
 
-  return expandTracedToNode(unless)`if (!(${condition})) {`.appendNewLine()
-    .indent([body])
-    .append('}')
-    .appendNewLine();
-}
+    // For now, just skip to the body
+    return joinTracedToNode(tag, 'body')(tag.body, (dir) => this.generateDirective(dir, ctx));
+  }
 
-function generateElseUnless(elseUnless: ElseUnless, ctx: GenerationContext) {
-  const condition = expandTracedToNode(elseUnless, 'condition')`${elseUnless.condition}`;
-  const body = joinTracedToNode(elseUnless, 'body')(elseUnless.body, (dir) => generateDirective(dir, ctx));
+  generateIf = (ifNode: If, ctx: GenerationContext): Generated => {
+    const condition = expandTracedToNode(ifNode, 'condition')`${ifNode.condition}`;
+    const body = joinTracedToNode(ifNode, 'body')(ifNode.body, (dir) => this.generateDirective(dir, ctx));
 
-  return expandTracedToNode(elseUnless)`else if (!(${condition})) {`.appendNewLine()
-    .indent([body])
-    .append('}')
-    .appendNewLine();
+    return expandTracedToNode(ifNode)`if (${condition}) {`.appendNewLine()
+      .indent([body])
+      .append('}')
+      .appendNewLine();
+  }
+
+  generateElseIf = (elseIf: ElseIf, ctx: GenerationContext): Generated => {
+    const condition = expandTracedToNode(elseIf, 'condition')`${elseIf.condition}`;
+    const body = joinTracedToNode(elseIf, 'body')(elseIf.body, (dir) => this.generateDirective(dir, ctx));
+
+    return expandTracedToNode(elseIf)`else if (${condition}) {`.appendNewLine()
+      .indent([body])
+      .append('}')
+      .appendNewLine();
+  }
+
+  generateElse = (elseNode: Else, ctx: GenerationContext): Generated => {
+    const body = joinTracedToNode(elseNode, 'body')(elseNode.body, (dir) => this.generateDirective(dir, ctx));
+
+    return expandTracedToNode(elseNode)`else {`.appendNewLine()
+      .indent([body])
+      .append('}')
+      .appendNewLine();
+  }
+
+  generateUnless = (unless: Unless, ctx: GenerationContext): Generated => {
+    const condition = expandTracedToNode(unless, 'condition')`${unless.condition}`;
+    const body = joinTracedToNode(unless, 'body')(unless.body, (dir) => this.generateDirective(dir, ctx));
+
+    return expandTracedToNode(unless)`if (!(${condition})) {`.appendNewLine()
+      .indent([body])
+      .append('}')
+      .appendNewLine();
+  }
+
+  generateElseUnless = (elseUnless: ElseUnless, ctx: GenerationContext): Generated => {
+    const condition = expandTracedToNode(elseUnless, 'condition')`${elseUnless.condition}`;
+    const body = joinTracedToNode(elseUnless, 'body')(elseUnless.body, (dir) => this.generateDirective(dir, ctx));
+
+    return expandTracedToNode(elseUnless)`else if (!(${condition})) {`.appendNewLine()
+      .indent([body])
+      .append('}')
+      .appendNewLine();
+  }
 }

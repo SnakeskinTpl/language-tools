@@ -10,7 +10,7 @@ export class SnakeskinDefinitionProvider extends DefaultDefinitionProvider {
 
     constructor(services: SnakeskinServices) {
         super(services);
-        this.ts = services.TypeScript;
+        this.ts = services.TypeScript.ts;
     }
 
     protected override collectLocationLinks(sourceCstNode: LeafCstNode, params: DefinitionParams): MaybePromise<LocationLink[] | undefined> {

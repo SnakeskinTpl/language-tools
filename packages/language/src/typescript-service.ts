@@ -5,7 +5,7 @@ import { globSync } from "glob";
 import { URI, DocumentState, type LangiumDocument } from "langium";
 import type { TraceRegion } from "langium/generate";
 import type { SnakeskinServices } from "./snakeskin-module";
-import { generateTypeScript, mapSourceOffsetToGenerated } from "./generator";
+import { mapSourceOffsetToGenerated, type TypeScriptGenerationService } from "./generator";
 import type { Module } from "./generated/ast";
 
 /**
@@ -24,6 +24,7 @@ export interface SnakeskinTypeScriptFile {
 
 export class TypeScriptServices {
     protected readonly languageService: ts.LanguageService;
+    protected readonly generator: TypeScriptGenerationService;
     /** A mapping from workspace root URI path to compiler options */
     protected readonly options: Record<string, ts.CompilerOptions> = {};
 
@@ -36,7 +37,7 @@ export class TypeScriptServices {
     constructor(services: SnakeskinServices) {
         const host: ts.LanguageServiceHost = {
             getCompilationSettings: () => this.getCompilerOptions(ts.sys.getCurrentDirectory()),
-            getScriptFileNames: () =>  [...this.files.keys()],
+            getScriptFileNames: () => [...this.files.keys()],
             getScriptVersion: (fileName: string) => this.files.get(fileName)?.version?.toString() ?? '',
             getScriptSnapshot: (fileName: string) => this.files.get(fileName)?.snapshot,
             getCurrentDirectory: ts.sys.getCurrentDirectory,
@@ -76,6 +77,8 @@ export class TypeScriptServices {
                 this.addSnakeskinFile(doc as LangiumDocument<Module>);
             }
         });
+
+        this.generator = services.TypeScript.generator;
     };
 
     private getCompilerOptions(rootPath: string): ts.CompilerOptions {
@@ -131,7 +134,7 @@ export class TypeScriptServices {
         // Ignore the 'as' part (not relevant for path resolution)
         includePath = includePath.split(':')[0];
 
-        const options = Object.entries(this.options).find(([workspace, ]) => {
+        const options = Object.entries(this.options).find(([workspace,]) => {
             return containingFile.toString().startsWith(workspace);
         })?.[1];
 
@@ -172,7 +175,7 @@ export class TypeScriptServices {
         const fileTsPath = TypeScriptServices.snakeskinUriToTsPath(document.uri);
         const module = document.parseResult.value;
 
-        const generated = generateTypeScript(module);
+        const generated = this.generator.generateTypeScript(module);
         if (generated == undefined) {
             return;
         }
