@@ -3,24 +3,32 @@ import * as fs from 'node:fs';
 import chalk from 'chalk';
 import type { AstNode, LangiumCoreServices, LangiumDocument } from 'langium';
 import { URI } from 'langium';
-import type { TextRegion, TraceRegion } from 'langium/generate';
+import type { TraceRegion } from 'langium/generate';
 
 /**
  * Given an offset in the source (Snakeskin) document and a sourcemap (trace object)
  * to the generated TypeScript, returns the corresponding offset (if any) in the
  * generated file to be used when querying with the TypeScript language service.
  */
-export function mapSourceOffsetToGenerated(sourceOffset: number, map: TraceRegion): TextRegion | null {
+export function mapSourceOffsetToGenerated(sourceOffset: number, map: TraceRegion): number | null {
     if (!map.sourceRegion) return null;
-    if (map.sourceRegion.offset === sourceOffset) {
-        return map.targetRegion;
-    }
     for (const child of map.children ?? []) {
-        const mapping = mapSourceOffsetToGenerated(sourceOffset, child);
-        if (mapping) {
-            return mapping;
+        const innerMapping = mapSourceOffsetToGenerated(sourceOffset, child);
+        if (innerMapping) {
+            return innerMapping;
         }
     }
+
+    const { targetRegion, sourceRegion } = map;
+
+    if (sourceRegion.offset <= sourceOffset && sourceRegion.end >= sourceOffset) {
+        // Approximate the location in the target region by using how far inside the sourceRegion the sourceOffset is.
+        const percent = (sourceRegion.end - sourceOffset) / (sourceRegion.end - sourceRegion.offset);
+        const offsetInsideTargetRegion = percent * (targetRegion.end - targetRegion.offset);
+        const offset = targetRegion.offset + offsetInsideTargetRegion;
+        return Math.round(offset);
+    }
+
     return null;
 }
 
@@ -54,8 +62,8 @@ export async function extractDocuments(fileOrDirName: string, services: LangiumC
         return [await extractDocument(fileOrDirName, services)];
     }
     const extensions = services.LanguageMetaData.fileExtensions;
-    const files = fs.readdirSync(fileOrDirName, { encoding:'utf8', recursive: true })
-                    .filter(file => extensions.includes(path.extname(file)));
+    const files = fs.readdirSync(fileOrDirName, { encoding: 'utf8', recursive: true })
+        .filter(file => extensions.includes(path.extname(file)));
     return Promise.all(files.map(file => extractDocument(path.join(fileOrDirName, file), services)));
 }
 

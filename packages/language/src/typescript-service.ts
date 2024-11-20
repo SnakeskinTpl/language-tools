@@ -207,8 +207,8 @@ export class TypeScriptServices {
             return;
         }
 
-        const tsOffset = mapSourceOffsetToGenerated(ssOffset, file.trace)?.offset;
-        if (tsOffset == undefined) {
+        const tsOffset = mapSourceOffsetToGenerated(ssOffset, file.trace);
+        if (tsOffset == null) {
             return;
         }
 
