@@ -163,7 +163,7 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
       const self = this;`?.appendNewLine();
 
     return expandTracedToNode(block)
-      `${ctx.insideTemplate ? '' : 'function '}${traceToNode(block, 'name')(block.name)}(${params}) {`
+      `${ctx.insideTemplate ? '' : 'function '}${traceToNode(block, 'name')(block.name)}(${params}): string {`
       .appendNewLine()
       .indent([preamble, body])
       .append('}')

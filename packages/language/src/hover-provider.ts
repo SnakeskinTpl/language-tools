@@ -1,8 +1,8 @@
 import path from 'node:path';
 import type { Hover, HoverParams } from 'vscode-languageserver';
-import { AstNode, LangiumDocument, MaybePromise, CstUtils, AstUtils, GrammarUtils } from 'langium';
+import { AstNode, LangiumDocument, CstUtils, AstUtils, GrammarUtils } from 'langium';
 import { AstNodeHoverProvider } from 'langium/lsp';
-import { isAttribute, isConst, isReferencePath, isTag, Module } from './generated/ast.js';
+import { isAttribute, isBlock, isConst, isReferencePath, isTag, Module } from './generated/ast.js';
 import { getDefaultHTMLDataProvider } from 'vscode-html-languageservice/lib/esm/htmlLanguageService.js';
 // @ts-expect-error - this function is not exported in the types, for some reason
 import { generateDocumentation } from 'vscode-html-languageservice/lib/esm/languageFacts/dataProvider.js';
@@ -20,13 +20,27 @@ export class HoverProvider extends AstNodeHoverProvider {
     };
 
     // by default, it tries to find the declaration, which we do not resolve yet, so we override the wrapper function
-    override getHoverContent(document: LangiumDocument<AstNode>, params: HoverParams): MaybePromise<Hover | undefined> {
+    override async getHoverContent(document: LangiumDocument<AstNode>, params: HoverParams): Promise<Hover | undefined> {
         const root = document.parseResult?.value?.$cstNode;
         const offset = document.textDocument.offsetAt(params.position);
-        const node = CstUtils.findDeclarationNodeAtOffset(root!, offset);
+        const node = CstUtils.findLeafNodeAtOffset(root!, offset);
+
         if (node) {
-            return this.getAstNodeHoverContent(node.astNode);
+            const hoverContent = await this.getAstNodeHoverContent(node.astNode);
+            if (hoverContent) {
+                return hoverContent
+            }
         }
+
+        // If a node is not found or doesn't have customized hover content,
+        // try to get the hover info from the TypeScript language service
+        // TODO: this doesn't currently work well.
+        // Seems like something is wrong with the trace regions
+        const contents = this.ts.getHoverInfo(document.textDocument.uri, offset);
+        if (contents) {
+            // return { contents, range: node?.range };
+        }
+
         return undefined;
     }
 
@@ -91,7 +105,7 @@ export class HoverProvider extends AstNodeHoverProvider {
             } else if (node.name === '%dirName%') {
                 return { contents: path.basename(path.dirname(uri)), range };
             }
-        } else if (isConst(node)) {
+        } else if (isConst(node) || isBlock(node)) {
             const module = AstUtils.findRootNode(node) as Module;
             const langiumDoc = AstUtils.getDocument<Module>(module);
             const { uri } = langiumDoc.textDocument;
@@ -101,7 +115,7 @@ export class HoverProvider extends AstNodeHoverProvider {
                 return;
             }
 
-            const info = this.ts.getConstHoverInfo(uri, nameNode.offset);
+            const info = this.ts.getHoverInfo(uri, nameNode.offset);
             if (info) {
                 return { contents: info, range };
             }
