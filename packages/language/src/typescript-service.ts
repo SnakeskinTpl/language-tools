@@ -3,7 +3,7 @@ import path from "node:path";
 import ts from "typescript";
 import { globSync } from "glob";
 import { URI, DocumentState, type LangiumDocument } from "langium";
-import type { TraceRegion } from "langium/generate";
+import { expandToString, type TraceRegion } from "langium/generate";
 import type { SnakeskinServices } from "./snakeskin-module";
 import { mapSourceOffsetToGenerated, type TypeScriptGenerationService } from "./generator";
 import type { Module } from "./generated/ast";
@@ -213,6 +213,14 @@ export class TypeScriptServices {
         }
 
         const info = this.languageService.getQuickInfoAtPosition(fileName, tsOffset);
-        return "```ts\n" + ts.displayPartsToString(info?.displayParts) + "\n```";
+        const typeInfo = ts.displayPartsToString(info?.displayParts);
+        const jsDoc = ts.displayPartsToString(info?.documentation);
+
+        return expandToString`
+            \`\`\`ts
+            ${typeInfo}
+            \`\`\`
+            ${jsDoc}
+        `;
     }
 }

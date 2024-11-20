@@ -5,11 +5,12 @@
  * This tutorial is the main source followed for this module: https://www.typefox.io/blog/code-generation-for-langium-based-dsls-3/
  */
 
+import { isJSDoc, type CommentProvider } from 'langium';
 import { traceToNode, expandTracedToNode, joinTracedToNode, toStringAndTrace, expandToNode, NL, joinToNode, expandTracedToNodeIf } from 'langium/generate';
-import { type Generated, type TraceRegion } from 'langium/generate';
+import type { Generated, TraceRegion } from 'langium/generate';
 import type { Directive, Const, Parameter, Template, Module, Block, Import, Include, ReferencePath, Void, Tag, Call, If, ElseIf, Else, Unless, ElseUnless } from "../generated/ast";
 import { isBlock, isConst } from "../generated/ast";
-import { SnakeskinServices } from '../snakeskin-module';
+import type { SnakeskinServices } from '../snakeskin-module';
 
 // TODO: move the context inside the class
 type GenerationContext = {
@@ -42,7 +43,11 @@ type DirectiveGenerators = {
 };
 
 export class TypeScriptGenerationService implements Partial<DirectiveGenerators> {
-  constructor(readonly services: SnakeskinServices) { }
+  protected commentProvider: CommentProvider;
+
+  constructor(readonly services: SnakeskinServices) {
+    this.commentProvider = services.documentation.CommentProvider;
+  }
 
   /**
    * Generates TypeScript code (with a source map) for a given Snakeskin module.
@@ -58,9 +63,15 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
   }
 
   generateDirective = (directive: Directive, ctx: GenerationContext): Generated => {
-    // TODO: get nearest JSDoc (if any)
     // @ts-expect-error - Not all functions are implemented yet
-    return this[`generate${directive.$type}`]?.(directive as never, ctx);
+    const generated: Generated = this[`generate${directive.$type}`]?.(directive as never, ctx);
+    const comment = this.commentProvider.getComment(directive);
+    if (comment && isJSDoc(comment)) {
+      return expandToNode`${comment}`
+        .appendNewLine()
+        .append(generated);
+    }
+    return generated;
   }
 
   generateTemplate = (template: Template, ctx: GenerationContext): Generated => {
