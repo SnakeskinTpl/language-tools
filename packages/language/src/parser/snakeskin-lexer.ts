@@ -39,44 +39,44 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 	// TODO: remove this override after https://github.com/eclipse-langium/langium/pull/1708 is released
 	protected override dedentMatcher(text: string, offset: number, tokens: IToken[], groups: Record<string, IToken[]>): ReturnType<CustomPatternMatcherFunc> {
 		if (!this.isStartOfLine(text, offset)) {
-				return null;
+			return null;
 		}
 
 		const { currIndentLevel, prevIndentLevel, match } = this.matchWhitespace(text, offset, tokens, groups);
 
 		if (currIndentLevel >= prevIndentLevel) {
-				// bigger indentation (should be matched by indent)
-				// or same indentation level (should be matched by whitespace and ignored)
-				return null;
+			// bigger indentation (should be matched by indent)
+			// or same indentation level (should be matched by whitespace and ignored)
+			return null;
 		}
 
 		const matchIndentIndex = this.indentationStack.lastIndexOf(currIndentLevel);
 
 		// Any dedent must match some previous indentation level.
 		if (matchIndentIndex === -1) {
-				this.diagnostics.push({
-						severity: 'error',
-						message: `Invalid dedent level ${currIndentLevel} at offset: ${offset}. Current indentation stack: ${this.indentationStack}`,
-						offset,
-						length: match?.[0]?.length ?? 0,
-						line: this.getLineNumber(text, offset),
-						column: 1
-				});
-				return null;
+			this.diagnostics.push({
+				severity: 'error',
+				message: `Invalid dedent level ${currIndentLevel} at offset: ${offset}. Current indentation stack: ${this.indentationStack}`,
+				offset,
+				length: match?.[0]?.length ?? 0,
+				line: this.getLineNumber(text, offset),
+				column: 1
+			});
+			return null;
 		}
 
 		const numberOfDedents = this.indentationStack.length - matchIndentIndex - 1;
 		const newlinesBeforeDedent = text.substring(0, offset).match(/[\r\n]+$/)?.[0].length ?? 1;
 
 		for (let i = 0; i < numberOfDedents; i++) {
-				const token = this.createIndentationTokenInstance(
-						this.dedentTokenType,
-						text,
-						'',  // Dedents are 0-width tokens
-						offset - (newlinesBeforeDedent - 1), // Place the dedent after the first new line character
-				);
-				tokens.push(token);
-				this.indentationStack.pop();
+			const token = this.createIndentationTokenInstance(
+				this.dedentTokenType,
+				text,
+				'',  // Dedents are 0-width tokens
+				offset - (newlinesBeforeDedent - 1), // Place the dedent after the first new line character
+			);
+			tokens.push(token);
+			this.indentationStack.pop();
 		}
 
 		// Token already added, let the dedentation now be consumed as whitespace (if any) and ignored
@@ -211,7 +211,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 		} else if (tokenType.name === 'JS_EXPR') {
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				if (tokens.length < 3) return null;
-				const [{tokenType: {name: parenOrComma}}, {tokenType: {name: id}}, {tokenType: {name: eq}}] = tokens.slice(-3);
+				const [{ tokenType: { name: parenOrComma } }, { tokenType: { name: id } }, { tokenType: { name: eq } }] = tokens.slice(-3);
 				if (eq !== '=' || id !== 'ID' || !['L_PAREN', 'COMMA', 'AT'].includes(parenOrComma)) {
 					return null;
 				}
@@ -231,7 +231,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 				// The " |" part is to support single line attribute values as well
 				const originalRegex = /(?<=\s(return|\+?=|if|switch|for|throw|unless|- target|\?|>|<!)\s).+?(?=$|\s+\|\s+)/my;
 				originalRegex.lastIndex = offset;
-				const singleLineMatch =  originalRegex.exec(text);
+				const singleLineMatch = originalRegex.exec(text);
 				if (singleLineMatch?.[0].endsWith('&')) {
 					// The value is multiline, so need to continue until consuming until " .\n"
 					const multilineRegex = /(?<=\s(return|\+?=|if|switch|for|throw|unless|- target|\?|<!) ).+?\s+\.$/smy;
@@ -255,7 +255,7 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 export class SnakeskinLexer extends IndentationAwareLexer {
 	override tokenize(text: string): LexerResult {
 		const result = super.tokenize(text);
-		let {errors, hidden, tokens} = result;
+		let { errors, hidden, tokens } = result;
 
 		// remove any indent/dedent tokens sandwiched between 2 TEXT tokens
 		for (let i = 0; i < tokens.length - 2; i++) {
