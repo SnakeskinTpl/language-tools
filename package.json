@@ -6,7 +6,7 @@
     "private": true,
     "scripts": {
         "clean": "npm run clean --workspaces",
-        "watch": "npm run watch --workspace packages/cli --workspace packages/extension --workspace packages/language",
+        "watch": "concurrently -n language,extension \"npm run watch --workspace packages/language\" \"npm run watch --workspace packages/extension\"",
         "build": "npm run build --workspaces",
         "build:clean": "npm run clean && npm run build",
         "lint": "eslint ./packages/*/src --no-error-on-unmatched-pattern --ext ts",

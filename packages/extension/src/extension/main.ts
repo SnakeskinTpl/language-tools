@@ -1,4 +1,4 @@
-import type { LanguageClientOptions, ServerOptions} from 'vscode-languageclient/node.js';
+import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node.js';
 import type * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
@@ -38,8 +38,6 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
         middleware: {
             handleDiagnostics(uri, diagnostics, next) {
                 const messagesToSuppress = [
-                    'Expecting end of file but found `DEDENT`.',
-                    "Expecting token of type 'EOF' but found `DEDENT`.",
                     "Expecting token of type 'DEDENT' but found ``.",
                 ]
                 const filteredDiagnostics = diagnostics.filter(diagnostic => !messagesToSuppress.includes(diagnostic.message));

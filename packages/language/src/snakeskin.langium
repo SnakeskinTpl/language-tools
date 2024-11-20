@@ -16,6 +16,7 @@ entry Module:
 Directive:
     Namespace |
     Template |
+    Decorator |
     // Interface |
     Placeholder |
     Block |
@@ -32,6 +33,7 @@ Directive:
 
     Var |
     Const |
+    Global |
 
     If |
     ElseIf |
@@ -107,18 +109,27 @@ Namespace:
 Parameter:
     usesWith?=AT? // Actually this line currently never matches because it would get detected as "ATTR_KEY"
     name=(ID|ATTR_KEY) // hack: ATTR_KEY because it can sometimes start with '@' and have default value, hence matching the wrong token
-    ('=' defaultValue=PARAM_DEFAULT_VALUE)?
+    ('=' defaultValue=JS_EXPR)?
     // TODO: any JS expression
+;
+
+fragment Parameters:
+    L_PAREN
+        (params+=Parameter (COMMA params+=Parameter)*)?
+    R_PAREN
 ;
 
 Template:
     '-' async?=ASYNC? 'template'
     name=ID
-    L_PAREN
-        (params+=Parameter (COMMA params+=Parameter)*)?
-    R_PAREN
+    Parameters
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body?
+;
+
+Decorator:
+    '-' AT global?=AT? funcName=ID
+    L_BRAC (args+=JS_EXPR (COMMA args+=JS_EXPR)*)? R_BRAC
 ;
 
 // TODO: Interface
@@ -129,9 +140,7 @@ Template:
 Placeholder:
     '-' 'placeholder'
     name=ID
-    L_PAREN
-        (params+=Parameter (COMMA params+=Parameter)*)?
-    R_PAREN
+    Parameters
     ('extends' extendsWith?=AT? extends=ReferencePath)?
     Body
 ;
@@ -140,9 +149,7 @@ Block:
     '-' 'block'
     (container=[Template] '->')?
     name=ID
-    (L_PAREN
-        (params+=Parameter (COMMA params+=Parameter)*)?
-    R_PAREN)?
+    Parameters?
     Body?
 ;
 
@@ -215,7 +222,10 @@ Const:
     '=' initialValue=AttrVal  // TODO: any JS expression
 ;
 
-// TODO: Global
+Global:
+    '-' AT AT name=ID
+    '=' initialValue=AttrVal
+;
 
 
 // ---------- VI. Logical directives ----------
@@ -294,7 +304,7 @@ Continue: {infer Continue} '-' 'continue';
 
 ForEach:
     '-' 'forEach'
-    AT? collection=(ID | JS_Array | ATTR_KEY) // TODO: any JS expression
+    AT? collection=(ID | JS_EXPR | ATTR_KEY) // TODO: any JS expression
     '=>'
     name=ID
     (COMMA idx=ID)?
@@ -472,8 +482,6 @@ TagName returns string:
     INTERPOLATION
 ;
 
-JS_Array returns string: L_BRAC (STRING (COMMA STRING)*)? R_BRAC;
-
 /**
  * The token builder will be overridden to choose one based on existing inside "& ."
  */
@@ -483,7 +491,7 @@ AttrVal returns string:
 terminal FUNC_PREFIX: /(?<=\n\s*)\(\)\s*=>\s/;
 terminal TEXT: /(?<=[\n\r]+\s+)(?!=+=|\/\*)[^\-\s<:?].*?(?=\r?\n)/s;
 terminal COMMA: /,/;
-terminal PARAM_DEFAULT_VALUE: /JS Object, will be overwritten in the TokenBuilder/;
+terminal JS_EXPR: /JS Object, will be overwritten in the TokenBuilder/;
 // Workaround for JavaScript expressions, matches till end of line
 /**
  * When inside & . context, attr ends with " | " or " .\n"
