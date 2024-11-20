@@ -16,6 +16,7 @@ entry Module:
 Directive:
     Namespace |
     Template |
+    Decorator |
     // Interface |
     Placeholder |
     Block |
@@ -32,6 +33,7 @@ Directive:
 
     Var |
     Const |
+    Global |
 
     If |
     ElseIf |
@@ -125,6 +127,11 @@ Template:
     Body?
 ;
 
+Decorator:
+    '-' AT global?=AT? funcName=ID
+    L_BRAC (args+=JS_EXPR (COMMA args+=JS_EXPR)*)? R_BRAC
+;
+
 // TODO: Interface
 
 /**
@@ -215,7 +222,10 @@ Const:
     '=' initialValue=AttrVal  // TODO: any JS expression
 ;
 
-// TODO: Global
+Global:
+    '-' AT AT name=ID
+    '=' initialValue=AttrVal
+;
 
 
 // ---------- VI. Logical directives ----------
