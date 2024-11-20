@@ -11,3 +11,5 @@ It is not yet ready for public use.
 
 - Semantic highlighting
 - Hover information for native HTML and Vue elements/attributes
+- Go to definition for `include` directives only
+- Folding ranges
