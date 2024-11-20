@@ -55,9 +55,6 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
   generateTypeScript(module: Module): { text: string, trace: TraceRegion } | undefined {
     const ctx = getDefaultContext();
     const directives = joinTracedToNode(module, 'directives')(module.directives, (dir) => this.generateDirective(dir, ctx));
-    if (directives == undefined) {
-      return undefined;
-    }
 
     return toStringAndTrace(directives);
   }
@@ -75,7 +72,7 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
   }
 
   generateTemplate = (template: Template, ctx: GenerationContext): Generated => {
-    const params = joinTracedToNode(template, 'params')(template.params, this.generateParam, { separator: ', ' })!;
+    const params = joinTracedToNode(template, 'params')(template.params, this.generateParam, { separator: ', ' });
 
     let superClass: Generated;
     if (template.extends) {
@@ -87,8 +84,8 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
     const classFieldDirectives = template.body.filter(dir => isValidClassField(dir));
     const otherDirectives = template.body.filter(dir => !isValidClassField(dir));
 
-    const classBody = joinTracedToNode(template, 'body')(classFieldDirectives, (dir) => this.generateDirective(dir, ctx))!;
-    const constructorBody = joinTracedToNode(template, 'body')(otherDirectives, (dir) => this.generateDirective(dir, ctx))!;
+    const classBody = joinTracedToNode(template, 'body')(classFieldDirectives, (dir) => this.generateDirective(dir, ctx));
+    const constructorBody = joinTracedToNode(template, 'body')(otherDirectives, (dir) => this.generateDirective(dir, ctx));
 
 
     if (!constructorBody.isEmpty() || !params.isEmpty()) {
@@ -157,7 +154,7 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
 
     const params = joinTracedToNode(block, 'params')(block.params, this.generateParam, { separator: ', ' })!;
     ctx = { ...ctx, insideBlock: true };
-    const body = joinTracedToNode(block, 'body')(block.body, (dir) => this.generateDirective(dir, ctx))!;
+    const body = joinTracedToNode(block, 'body')(block.body, (dir) => this.generateDirective(dir, ctx));
 
     const preamble = expandTracedToNodeIf(!body.isEmpty() && ctx.insideTemplate, block)`
       const self = this;`?.appendNewLine();
@@ -218,7 +215,7 @@ export class TypeScriptGenerationService implements Partial<DirectiveGenerators>
     const body = joinTracedToNode(call, 'body')(call.body, (dir) => this.generateDirective(dir, ctx))
     return expandTracedToNode(call, 'value')`${call.value};`
       .appendNewLine()
-      .appendTracedIf(!body?.isEmpty(), call, 'body')(body)
+      .appendTracedIf(!body.isEmpty(), call, 'body')(body)
       .appendNewLineIfNotEmpty();
   }
 

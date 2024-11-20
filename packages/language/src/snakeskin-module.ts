@@ -7,7 +7,6 @@ import { SemanticTokenProvider } from './semantic-tokens.js';
 import { HoverProvider } from './hover-provider.js';
 import { TypeScriptServices } from './typescript-service.js';
 import { SnakeskinDefinitionProvider } from './definition-provider.js';
-import { SnakeskinWorkspaceManager } from './workspace-manager.js';
 import { SnakeskinFoldingRangeProvider } from './folding-ranges.js';
 import { TypeScriptGenerationService } from './generator/generators.js';
 
@@ -24,17 +23,11 @@ export type SnakeskinAddedServices = {
     };
 }
 
-export type SnakeskinSharedServices = {
-    workspace: {
-        WorkspaceManager: SnakeskinWorkspaceManager;
-    };
-};
-
 /**
  * Union of Langium default services and your custom services - use this as constructor parameter
  * of custom service classes.
  */
-export type SnakeskinServices = LangiumServices & SnakeskinAddedServices & { shared: SnakeskinSharedServices };
+export type SnakeskinServices = LangiumServices & SnakeskinAddedServices;
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
@@ -61,12 +54,6 @@ export const SnakeskinModule: Module<SnakeskinServices, PartialLangiumServices &
     },
 };
 
-export const SnakeskinSharedModule: Module<LangiumSharedServices, SnakeskinSharedServices> = {
-    workspace: {
-        WorkspaceManager: (services) => new SnakeskinWorkspaceManager(services),
-    },
-};
-
 /**
  * Create the full set of services required by Langium.
  *
@@ -89,7 +76,6 @@ export function createSnakeskinServices(context: DefaultSharedModuleContext): {
     const shared = inject(
         createDefaultSharedModule(context),
         SnakeskinGeneratedSharedModule,
-        SnakeskinSharedModule,
     );
     const Snakeskin = inject(
         createDefaultModule({ shared }),

@@ -51,7 +51,7 @@ export class TypeScriptServices {
         this.languageService = ts.createLanguageService(host, docRegistry);
 
         void services.shared.workspace.WorkspaceManager.ready.then(() => {
-            services.shared.workspace.WorkspaceManager.workspaceFolders.forEach(folder => {
+            (services.shared.workspace.WorkspaceManager.workspaceFolders ?? []).forEach(folder => {
                 this.options[folder.uri] = this.getCompilerOptions(URI.parse(folder.uri).path);
             });
         });
