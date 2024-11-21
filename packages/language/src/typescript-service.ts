@@ -22,6 +22,18 @@ export interface SnakeskinTypeScriptFile {
     version: number;
 }
 
+/**
+ * Taken from "langium/lsp", one of the formats of SemanticTokenAcceptorOptions that is
+ * the most compatible with what TS Language Service returns.
+ */
+export interface TypeScriptSemanticToken {
+    line: number;
+    char: number;
+    length: number;
+    type: string;
+    modifier?: string | string[];
+}
+
 export class TypeScriptServices {
     protected readonly languageService: ts.LanguageService;
     protected readonly generator: TypeScriptGenerationService;
@@ -226,5 +238,41 @@ export class TypeScriptServices {
             \`\`\`
             ${jsDoc}
         `;
+    }
+
+    /**
+     * Copied from:
+     * https://github.com/typescript-language-server/typescript-language-server/blob/184c60de3308621380469d6632bdff2e10f672fd/src/features/semantic-tokens.ts
+     * @param fileName
+     * @param span
+     */
+    getSemanticTokens(fileName: string, span: ts.TextSpan): TypeScriptSemanticToken[] {
+        fileName = TypeScriptServices.snakeskinUriToTsPath(fileName);
+        // TODO: figure out how to map the text span from Snakeskin source to the generated TS
+        const typeOffset = 8;
+        // const modifierMask = (1 << typeOffset) - 1;
+        const { spans } = this.languageService.getEncodedSemanticClassifications(fileName, span);
+
+        // ts-server sends us a packed array that contains 3 elements per 1 token:
+        // 1. the start position of the token
+        // 2. length of the token
+        // 3. token type & modifier packed into a bitset
+        const tokens: TypeScriptSemanticToken[] = []
+
+        for (let i = 0; i < spans.length; i += 3) {
+            const [tokenStart, tokenLength, tokenTypeBitSet] = spans.slice(i, i + 3);
+            // const tokenModifier = tokenTypeBitSet & modifierMask;
+            const tokenType = (tokenTypeBitSet >> typeOffset) - 1;
+
+            tokens.push({
+                line: tokenStart, // TODO: map the offset to line+char
+                char: tokenStart,
+                length: tokenLength,
+                type: ts.ClassificationType[tokenType], // not sure this mapping is correct. Maybe we should just override `createAcceptor` in the semantic provider to accept numbers
+                modifier: '', // TODO: how? tokenModifier
+            })
+        }
+
+        return tokens;
     }
 }
