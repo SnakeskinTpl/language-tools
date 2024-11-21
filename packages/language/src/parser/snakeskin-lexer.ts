@@ -153,7 +153,10 @@ export class SnakeskinTokenBuilder extends IndentationAwareTokenBuilder<Snakeski
 			tokenType.PATTERN = (text, offset, tokens, groups) => {
 				if (tokens.length < 3) return null;
 				const [{ tokenType: { name: parenOrComma } }, { tokenType: { name: id } }, { tokenType: { name: eq } }] = tokens.slice(-3);
-				if (eq !== '=' || id !== 'ID' || !['L_PAREN', 'COMMA', 'AT'].includes(parenOrComma)) {
+				const isParamDefaultValue = eq === '=' && id === 'ID' && ['L_PAREN', 'COMMA', 'AT'].includes(parenOrComma);
+				const isForEachValue = eq === 'forEach';
+
+				if (!isParamDefaultValue && !isForEachValue) {
 					return null;
 				}
 
