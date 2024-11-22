@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2024-11-22
+
 ### Added
 
 - Support providing folding ranges (the `textDocument/foldingRange` LSP request).
@@ -60,7 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial release with basic semantic highlighting and hover information
 
-[Unreleased]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/SnakeskinTpl/vscode-snakeskin/compare/v0.0.2...v0.0.3
