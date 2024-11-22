@@ -122,12 +122,12 @@ jobs:
         run: npm ci
 
       - name: Publish language package
-        run: npm publish -w @snakeskin/language --access public
+        run: npm publish --workspace @snakeskin/language --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish CLI package
-        run: npm publish -w @snakeskin/cli --access public
+        run: npm publish --workspace @snakeskin/cli --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
